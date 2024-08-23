@@ -19,14 +19,14 @@
 
       <el-container>
         <el-header style="text-align: right; font-size: 15px; height: 70px;">
-          <div class="toolbar">
-            <el-button type="primary" :icon="Icons.Plus" @click="openAddExpense()">Добавить</el-button>
+          <div class="header">
+            <el-button v-if="financialMonitoringStore.currentPage !== 'addNote' && financialMonitoringStore.currentPage !== 'filterOptions'" type="primary" :icon="Icons.Plus" @click="openAddExpense()">Добавить</el-button>
           </div>
         </el-header>
 
         <el-main>
           <el-scrollbar>
-            <div v-if="financialMonitoringStore.currentPage === 'expenses'">
+            <div class="toolbar" v-if="financialMonitoringStore.currentPage === 'expenses'">
               <financial-monitoring-expenses>
               </financial-monitoring-expenses>
             </div>

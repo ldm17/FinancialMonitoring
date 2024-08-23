@@ -7,7 +7,7 @@ body {
   padding: 0;
 }
 
-.layout-container > .el-header {
+.layout-container .el-container > .el-header {
   position: fixed;
   background-color: #ffffff;
   border-bottom: solid 1px var(--el-menu-border-color);
@@ -43,7 +43,7 @@ body {
   max-width: 800px;
 }
 
-.layout-container .toolbar {
+.layout-container .header {
   display: inline-flex;
   align-items: center;
   justify-content: center;

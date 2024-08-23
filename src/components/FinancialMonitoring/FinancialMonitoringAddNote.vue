@@ -1,8 +1,10 @@
 <template>
   <div>
     <p>{{ financialMonitoringStore.pageParams.title }}</p>
+    <span v-if="switchGetSumExpense"><el-icon size="small"><Hide /></el-icon></span>
+    <span v-if="mark"><el-icon size="small"><CollectionTag /></el-icon></span>
     <p>Сумма</p>
-    <el-input style="width: 250px" v-model="amount" placeholder="Введите сумму" :formatter="(value) => `${value}`.replace(/[^0-9.]/g, '')">
+    <el-input style="width: 250px" v-model="amount" placeholder="Введите сумму" :formatter="(value) => `${value}`.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')">
     </el-input>
 
     <p>Категория</p>
@@ -21,10 +23,13 @@
     <p>
       <el-button @click="addDescription()"><el-icon><EditPen /></el-icon></el-button>
       <el-button><el-icon><PictureFilled /></el-icon></el-button>
+      <el-button @click="editMark()"><el-icon><CollectionTag /></el-icon></el-button>
+      <el-button @click="deleteExpense(this.financialMonitoringStore.pageParams.id)"><el-icon><Delete /></el-icon></el-button>
     </p>
 
     <p>
       Не учитывать в общей сумме
+      <!-- isIgnoredInCalculation -->
       <el-switch v-model="switchGetSumExpense" />
     </p>
 
@@ -46,11 +51,11 @@
 
 <script>
 import { useFinancialMonitoringStore } from '@/stores/FinancialMonitoringStore';
+import { ElMessage, ElMessageBox } from 'element-plus';
 
 export default {
   name: "financial-monitoring-add-note",
-  components: {
-  },
+  components: {},
   setup() {
     const financialMonitoringStore = useFinancialMonitoringStore();
     return { financialMonitoringStore };
@@ -89,7 +94,7 @@ export default {
       this.financialMonitoringStore.addNote({
         id: this.financialMonitoringStore.expenses.length + 1,
         idCategory: expense.id,
-        amount: amount,
+        amount: parseFloat(amount),
         category: selectedCategory,
         date: datePicker,
         description: this.description,
@@ -120,6 +125,36 @@ export default {
     },
     addDescription: function () {
       this.isDescription = !this.isDescription;
+    },
+    editMark: function () {
+      this.mark = !this.mark;
+    },
+    deleteExpense: function (id) {
+      ElMessageBox.confirm(
+      'Удалить запись ?',
+      'Подтвердите действие',
+      {
+        confirmButtonText: 'Удалить',
+        cancelButtonText: 'Отменить',
+        type: 'warning',
+        center: true,
+        draggable: true,
+      }
+    )
+      .then(() => {
+        ElMessage({
+          type: 'success',
+          message: 'Запись удалена',
+        })
+        this.financialMonitoringStore.deleteExpense(id);
+        this.financialMonitoringStore.setPage('expenses');
+      })
+      .catch(() => {
+        ElMessage({
+          type: 'info',
+          message: 'Удаление отменено',
+        })
+      })
     },
   },
 };

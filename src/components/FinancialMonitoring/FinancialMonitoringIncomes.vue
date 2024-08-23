@@ -1,5 +1,5 @@
 <template>
-<el-empty description="Нет данных для отображения" />
+  <el-empty description="Нет данных для отображения" />
 </template>
 
 <script>
