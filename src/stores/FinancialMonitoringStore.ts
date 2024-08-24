@@ -7,22 +7,22 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     pageParams: {},
     expenses: [
       {
-        id: 2, idCategory: 2, amount: 30, category: 'Недвижимость', date: '2024/07/27 00:00', description: '', switch: false, mark: false,
+        id: 2, idCategory: 2, amount: 30, category: 'Недвижимость', date: '2024/07/27 00:00', description: '', switch: false, isFavorite: false,
       },
       {
-        id: 1, idCategory: 1, amount: 15, category: 'Продукты', date: '2024/07/25 00:00', description: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Voluptates ab deserunt, quia beatae molestias ratione natus repudiandae rem sunt nesciunt laborum maiores aliquam facere minus, impedit blanditiis quisquam atque dolor?', switch: false, mark: false,
+        id: 1, idCategory: 1, amount: 15, category: 'Продукты', date: '2024/07/25 00:00', description: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Voluptates ab deserunt, quia beatae molestias ratione natus repudiandae rem sunt nesciunt laborum maiores aliquam facere minus, impedit blanditiis quisquam atque dolor?', switch: false, isFavorite: false,
       },
       {
-        id: 3, idCategory: 1, amount: 10, category: 'Продукты', date: '2024/07/21 00:00', description: '', switch: true, mark: true,
+        id: 3, idCategory: 1, amount: 10, category: 'Продукты', date: '2024/07/21 00:00', description: '', switch: true, isFavorite: true,
       },
       {
-        id: 4, idCategory: 3, amount: 50, category: 'Транспорт', date: '2024/08/09 00:00', description: 'Lorem ipsum dolor sit amet consectetur adipisicing elit', switch: false, mark: false,
+        id: 4, idCategory: 3, amount: 50, category: 'Транспорт', date: '2024/08/09 00:00', description: 'Lorem ipsum dolor sit amet consectetur adipisicing elit', switch: false, isFavorite: false,
       },
       {
-        id: 5, idCategory: 2, amount: 50, category: 'Недвижимость', date: '2024/08/09 00:00', description: '', switch: false, mark: false,
+        id: 5, idCategory: 2, amount: 50, category: 'Недвижимость', date: '2024/08/09 00:00', description: '', switch: false, isFavorite: false,
       },
       {
-        id: 6, idCategory: 1, amount: 70, category: 'Продукты', date: '2024/08/07 00:00', description: '', switch: false, mark: false,
+        id: 6, idCategory: 1, amount: 70, category: 'Продукты', date: '2024/08/07 00:00', description: '', switch: false, isFavorite: false,
       },
     ],
     categories: [

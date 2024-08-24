@@ -15,8 +15,11 @@
         <template #prefix>
           <el-icon><Filter /></el-icon>
         </template>
-        <el-option v-for="item in filterExpensesOptions" :key="item.id" :value="item.option">
-        </el-option>
+        <el-option :value="FilterType.NotSelected" label="Не выбрано"></el-option>
+        <el-option :value="FilterType.ByCategories" label="По категориям"></el-option>
+        <el-option :value="FilterType.ByRangeOfAmounts" label="По диапазону сумм"></el-option>
+        <el-option :value="FilterType.ByIgnoredInCalculation" label="По неучитываемым расходам"></el-option>
+        <el-option :value="FilterType.ByFavorite" label="По помеченным расходам"></el-option>
       </el-select>
     </div>
 
@@ -42,29 +45,29 @@
     <div v-else>
       <p style="color: red; text-align: right">{{ getSumExpenses() }}</p>
       <div class="expenses__card">
-        <el-card class="visible-actions-note" style="margin-bottom: 15px;" v-for="group in expenses()" :key="group.id">
+        <el-card style="margin-bottom: 15px;" v-for="group in expenses()" :key="group.id">
             <el-row :gutter="20">
               <el-col :span="12">
                 {{ group.date }}
               </el-col>
               <el-col :span="12" style="text-align: right">
-                <span v-if="group.items.some(item => item.mark)">
-                  <el-icon size="small"><CollectionTag /></el-icon>
-                </span>
-                <span v-if="group.items.some(item => item.switch)">
-                  <el-icon size="small"><Hide /></el-icon>
-                </span>
                 <span style="color: red">-{{ group.items.reduce((sum, item) => sum + item.amount, 0) }}</span>
               </el-col>
             </el-row>
 
-            <div @click="openInfoNote(item.id)" v-for="(item, index) in group.items" :key="item.id">
+            <div class="visible-actions-note" @click="openInfoNote(item.id)" v-for="(item, index) in group.items" :key="item.id">
               <el-row :gutter="20" style="margin-top: 15px;">
                 <el-col :span="12">
                   {{ item.category }}
                 </el-col>
-                <el-col style="color: red; text-align: right;" :span="12">
-                  -{{ item.amount }}
+                <el-col style="text-align: right;" :span="12">
+                  <span v-if="item.isFavorite">
+                    <el-icon size="small"><CollectionTag /></el-icon>
+                  </span>
+                  <span v-if="item.isIgnoredInCalculation">
+                    <el-icon size="small"><Hide /></el-icon>
+                  </span>
+                  <span style="color: red;">-{{ item.amount }}</span>
                 </el-col>
               </el-row>
 
@@ -75,7 +78,7 @@
               </el-row>
                 <el-row :gutter="20">
                   <el-col :span="24" style="text-align: right;">
-                    <el-button @click.stop="markNote(item.id)" size="small"><el-icon><CollectionTag /></el-icon></el-button>
+                    <el-button @click.stop="isFavoriteNote(item.id)" size="small"><el-icon><CollectionTag /></el-icon></el-button>
                     <el-button @click.stop="openEditNote(item.id)" size="small"><el-icon><Edit /></el-icon></el-button>
                     <el-button @click.stop="deleteExpense(item.id)" size="small"><el-icon><Delete /></el-icon></el-button>
                   </el-col>
@@ -99,6 +102,14 @@ const SortType = {
   ByLowestExpenses: 2,
 };
 
+const FilterType = {
+  NotSelected: 0,
+  ByCategories: 1,
+  ByRangeOfAmounts: 2,
+  ByIgnoredInCalculation: 3,
+  ByFavorite: 4,
+};
+
 export default {
   name: "financial-monitoring-expenses",
   components: {},
@@ -115,33 +126,30 @@ export default {
     return {
       SortType: SortType,
       typeSortExpenses: SortType.ByDate,
-      typeFilterExpenses: 'Не выбрано',
-      filterExpensesOptions: [
-        {
-          id: 1,
-          option: 'Не выбрано',
-        },
-        {
-          id: 2,
-          option: 'По категориям',
-        },
-        {
-          id: 3,
-          option: 'По диапазону дат',
-        },
-        {
-          id: 4,
-          option: 'По диапазону сумм',
-        },
-        {
-          id: 5,
-          option: 'По неучитываемым расходам',
-        },
-        {
-          id: 6,
-          option: 'По помеченным расходам',
-        },
-      ],
+      FilterType: FilterType,
+      typeFilterExpenses: FilterType.NotSelected,
+      // filterExpensesOptions: [
+      //   {
+      //     id: 1,
+      //     option: 'Не выбрано',
+      //   },
+      //   {
+      //     id: 2,
+      //     option: 'По категориям',
+      //   },
+      //   {
+      //     id: 3,
+      //     option: 'По диапазону сумм',
+      //   },
+      //   {
+      //     id: 4,
+      //     option: 'По неучитываемым расходам',
+      //   },
+      //   {
+      //     id: 5,
+      //     option: 'По помеченным расходам',
+      //   },
+      // ],
       activeName: 'fifth',
       selectedFilterDatePicker: '',
     };
@@ -153,7 +161,7 @@ export default {
       
       for (let group of expensesArray) {
         for (let item of group.items) {
-          if (!item.switch) {
+          if (!item.isIgnoredInCalculation) {
             sum += Math.round(item.amount * 10) / 10;
           }
         }
@@ -162,20 +170,20 @@ export default {
     },
     checkTypeFilterExpenses: function () {
       this.financialMonitoringStore.pageParams.selectedFilterCategory = '';
-      this.financialMonitoringStore.pageParams.selectedFilterDatePicker = '';
       this.financialMonitoringStore.pageParams.selectedFilterMinAmount = '';
       this.financialMonitoringStore.pageParams.selectedFilterMaxAmount = '';
 
-      if (this.typeFilterExpenses !== 'Не выбрано' && this.typeFilterExpenses !== 'По неучитываемым расходам' && this.typeFilterExpenses !== 'По помеченным расходам') {
+      if (this.typeFilterExpenses !== FilterType.NotSelected && this.typeFilterExpenses !== FilterType.ByIgnoredInCalculation && this.typeFilterExpenses !== FilterType.ByFavorite) {
         this.financialMonitoringStore.setPage('filterOptions', {
           typeFilterExpenses: this.typeFilterExpenses,
+          FilterType: this.FilterType,
         });
       }
     },
     expenses: function () {
       let expensesArray = this.filterExpensesByTabs();
 
-      if (this.typeFilterExpenses !== 'Не выбрано') {
+      if (this.typeFilterExpenses !== FilterType.NotSelected) {
         expensesArray = this.filterExpenses();
       }
     
@@ -224,7 +232,6 @@ export default {
     filterExpenses: function () {
       let expensesArray = this.filterExpensesByTabs();
       let selectedFilterCategory = this.financialMonitoringStore.pageParams.selectedFilterCategory;
-      let selectedFilterDatePicker = this.financialMonitoringStore.pageParams.selectedFilterDatePicker;
       let selectedFilterMinAmount = this.financialMonitoringStore.pageParams.selectedFilterMinAmount;
       let selectedFilterMaxAmount = this.financialMonitoringStore.pageParams.selectedFilterMaxAmount;
 
@@ -235,10 +242,10 @@ export default {
           const amount = item.amount;
           return amount >= selectedFilterMinAmount && amount <= selectedFilterMaxAmount
         });
-      } else if (this.typeFilterExpenses == 'По неучитываемым расходам') {
-        expensesArray = expensesArray.filter(item => item.switch);
-      } else if (this.typeFilterExpenses == 'По помеченным расходам') {
-        expensesArray = expensesArray.filter(item => item.mark);
+      } else if (this.typeFilterExpenses == FilterType.ByIgnoredInCalculation) {
+        expensesArray = expensesArray.filter(item => item.isIgnoredInCalculation);
+      } else if (this.typeFilterExpenses == FilterType.ByFavorite) {
+        expensesArray = expensesArray.filter(item => item.isFavorite);
       }
       
       return expensesArray;
@@ -267,7 +274,7 @@ export default {
       } else if (this.activeName == 'third') {
         const today = new Date();
         const startDate = new Date(today.getFullYear(), today.getMonth() - 5, 1);
-        const endDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
         expensesArray = expensesArray.filter(item => {
           const date = new Date(item.date); 
@@ -276,7 +283,7 @@ export default {
       } else if (this.activeName == 'second') {
         const today = new Date();
         const startDate = new Date(today.getFullYear() - 1, 0, 1);
-        const endDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
 
         expensesArray = expensesArray.filter(item => {
           const date = new Date(item.date); 
@@ -294,9 +301,14 @@ export default {
       
       return expensesArray;
     },
-    markNote: function (id) {
-      const expensesNote = this.financialMonitoringStore.expenses.find(item => item.id == id);
-      expensesNote.mark = !expensesNote.mark;
+    isFavoriteNote: function (id) {
+      const groupedExpenses = this.expenses();
+      for (const group of groupedExpenses) {
+        const expensesNote = group.items.find(item => item.id == id);
+        if (expensesNote) {
+          expensesNote.isFavorite = !expensesNote.isFavorite;
+        }
+      }
     },
     deleteExpense: function (id) {
       ElMessageBox.confirm(

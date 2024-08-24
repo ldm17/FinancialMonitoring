@@ -5,8 +5,8 @@
         <div>
           <p>{{ item.category }}</p>
           <h1>
-            <el-icon v-if="item.mark" size="small"><CollectionTag /></el-icon>
-            <el-icon v-if="item.switch" size="small"><Hide /></el-icon>
+            <el-icon v-if="item.isFavorite" size="small"><CollectionTag /></el-icon>
+            <el-icon v-if="item.isIgnoredInCalculation" size="small"><Hide /></el-icon>
             <span style="color: red;">-{{ item.amount }}</span>
           </h1>
           <p>

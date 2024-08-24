@@ -2,7 +2,7 @@
   <div>
     <p>{{ financialMonitoringStore.pageParams.title }}</p>
     <span v-if="switchGetSumExpense"><el-icon size="small"><Hide /></el-icon></span>
-    <span v-if="mark"><el-icon size="small"><CollectionTag /></el-icon></span>
+    <span v-if="isFavorite"><el-icon size="small"><CollectionTag /></el-icon></span>
     <p>Сумма</p>
     <el-input style="width: 250px" v-model="amount" placeholder="Введите сумму" :formatter="(value) => `${value}`.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')">
     </el-input>
@@ -23,7 +23,7 @@
     <p>
       <el-button @click="addDescription()"><el-icon><EditPen /></el-icon></el-button>
       <el-button><el-icon><PictureFilled /></el-icon></el-button>
-      <el-button @click="editMark()"><el-icon><CollectionTag /></el-icon></el-button>
+      <el-button @click="editIsFavorite()"><el-icon><CollectionTag /></el-icon></el-button>
       <el-button @click="deleteExpense(this.financialMonitoringStore.pageParams.id)"><el-icon><Delete /></el-icon></el-button>
     </p>
 
@@ -68,8 +68,8 @@ export default {
       this.selectedCategory = expense.category;
       this.datePicker = expense.date;
       this.description = expense.description;
-      this.switchGetSumExpense = expense.switch;
-      this.mark = expense.mark;
+      this.switchGetSumExpense = expense.isIgnoredInCalculation;
+      this.isFavorite = expense.isFavorite;
     }
   },
   data() {
@@ -80,7 +80,7 @@ export default {
       isDescription: false,
       description: '',
       switchGetSumExpense: false,
-      mark: false,
+      isFavorite: false,
     };
   },
   methods: {
@@ -98,8 +98,8 @@ export default {
         category: selectedCategory,
         date: datePicker,
         description: this.description,
-        switch: this.switchGetSumExpense,
-        mark: this.mark,
+        isIgnoredInCalculation: this.switchGetSumExpense,
+        isFavorite: this.isFavorite,
       });
       this.financialMonitoringStore.setPage('expenses')
       }
@@ -115,8 +115,8 @@ export default {
         expense.category = this.selectedCategory;
         expense.date = this.datePicker;
         expense.description = this.description;
-        expense.switch = this.switchGetSumExpense;
-        expense.mark = this.mark
+        expense.isIgnoredInCalculation = this.switchGetSumExpense;
+        expense.isFavorite = this.isFavorite;
       }
       this.financialMonitoringStore.setPage('expenses')
     },
@@ -126,8 +126,8 @@ export default {
     addDescription: function () {
       this.isDescription = !this.isDescription;
     },
-    editMark: function () {
-      this.mark = !this.mark;
+    editIsFavorite: function () {
+      this.isFavorite = !this.isFavorite;
     },
     deleteExpense: function (id) {
       ElMessageBox.confirm(

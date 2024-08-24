@@ -8,7 +8,6 @@
 <script>
 import styles from './main.scss';
 import FinancialMonitoring from './components/FinancialMonitoring/FinancialMonitoring.vue';
-import test from './components/test.vue';
 
 import { ElConfigProvider } from 'element-plus';
 import ru from 'element-plus/es/locale/lang/ru';
@@ -16,7 +15,6 @@ import ru from 'element-plus/es/locale/lang/ru';
 export default {
   name: "App",
   components: {
-    test,
     FinancialMonitoring,
     ElConfigProvider,
   },
