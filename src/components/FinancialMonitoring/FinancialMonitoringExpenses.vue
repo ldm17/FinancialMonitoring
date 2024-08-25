@@ -6,7 +6,8 @@
         <template #prefix>
           <el-icon><Sort /></el-icon>
         </template>
-        <el-option :value="SortType.ByDate" label="По дате добавления"></el-option>
+        <el-option :value="SortType.ByDateNew" label="По дате добавления (новые)"></el-option>
+        <el-option :value="SortType.ByDateOld" label="По дате добавления (старые)"></el-option>
         <el-option :value="SortType.ByHighestExpenses" label="По наибольшим расходам"></el-option>
         <el-option :value="SortType.ByLowestExpenses" label="По наименьшим расходам"></el-option>
       </el-select>
@@ -97,9 +98,10 @@ import { useFinancialMonitoringStore } from "@/stores/FinancialMonitoringStore";
 import { ElMessage, ElMessageBox } from 'element-plus';
 
 const SortType = {
-  ByDate: 0,
-  ByHighestExpenses: 1,
-  ByLowestExpenses: 2,
+  ByDateNew: 0,
+  ByDateOld: 1,
+  ByHighestExpenses: 2,
+  ByLowestExpenses: 3,
 };
 
 const FilterType = {
@@ -121,35 +123,21 @@ export default {
     if (this.financialMonitoringStore.pageParams.selectedTypeFilterExpenses) {
       this.typeFilterExpenses = this.financialMonitoringStore.pageParams.selectedTypeFilterExpenses;
     }
+
+    if (this.financialMonitoringStore.pageParams.selectedSortTypeExpenses) {
+      this.typeSortExpenses = this.financialMonitoringStore.pageParams.selectedSortTypeExpenses;
+    }
+
+    if (this.financialMonitoringStore.pageParams.selectedActiveName) {
+      this.activeName = this.financialMonitoringStore.pageParams.selectedActiveName;
+    }
   },
   data() {
     return {
       SortType: SortType,
-      typeSortExpenses: SortType.ByDate,
+      typeSortExpenses: SortType.ByDateNew,
       FilterType: FilterType,
       typeFilterExpenses: FilterType.NotSelected,
-      // filterExpensesOptions: [
-      //   {
-      //     id: 1,
-      //     option: 'Не выбрано',
-      //   },
-      //   {
-      //     id: 2,
-      //     option: 'По категориям',
-      //   },
-      //   {
-      //     id: 3,
-      //     option: 'По диапазону сумм',
-      //   },
-      //   {
-      //     id: 4,
-      //     option: 'По неучитываемым расходам',
-      //   },
-      //   {
-      //     id: 5,
-      //     option: 'По помеченным расходам',
-      //   },
-      // ],
       activeName: 'fifth',
       selectedFilterDatePicker: '',
     };
@@ -211,16 +199,26 @@ export default {
       if (!expensesArray || expensesArray.length === 0) return expensesArray;
 
       const groupedExpenses = expensesArray.map(group => {
-      const totalAmount = group.items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+      const totalAmount = group.items.reduce((sum, item) => sum + item.amount, 0);
         return {
           ...group,
           totalAmount,
         };
       });
 
+      groupedExpenses.forEach(group => {
+        group.items.sort((a, b) => {
+          const dateA = new Date(a.date);
+          const dateB = new Date(b.date);
+          return this.typeSortExpenses == SortType.ByDateNew ? dateB - dateA : dateA - dateB
+        });
+      });
+
       switch (this.typeSortExpenses) {
-        case SortType.ByDate:
+        case SortType.ByDateNew:
           return groupedExpenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+        case SortType.ByDateOld:
+          return groupedExpenses.sort((a, b) => new Date(a.date) - new Date(b.date));  
         case SortType.ByHighestExpenses:
           return groupedExpenses.sort((a, b) => b.totalAmount - a.totalAmount);
         case SortType.ByLowestExpenses:
@@ -340,11 +338,14 @@ export default {
       this.financialMonitoringStore.setPage('addNote', {
         title: 'Редактирование раcхода',
         id: id,
+        activeName: this.activeName,
       });
     },
     openInfoNote: function (id) {
       this.financialMonitoringStore.setPage('infoNote', {
         id: id,
+        typeSortExpenses: this.typeSortExpenses,
+        activeName: this.activeName,
       });
     },
   },

@@ -45,7 +45,11 @@ export default {
   },
   methods: {
     backToHome: function () {
-      this.financialMonitoringStore.setPage('expenses');
+      this.financialMonitoringStore.setPage('expenses', {
+        selectedSortTypeExpenses: this.financialMonitoringStore.pageParams.typeSortExpenses,
+        selectedActiveName: this.financialMonitoringStore.pageParams.activeName,
+        } 
+      );
     },
   },
 };

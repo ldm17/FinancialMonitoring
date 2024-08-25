@@ -1,7 +1,7 @@
 <template>
   <div>
     <p>{{ financialMonitoringStore.pageParams.title }}</p>
-    <span v-if="switchGetSumExpense"><el-icon size="small"><Hide /></el-icon></span>
+    <span v-if="isIgnoredInCalculation"><el-icon size="small"><Hide /></el-icon></span>
     <span v-if="isFavorite"><el-icon size="small"><CollectionTag /></el-icon></span>
     <p>Сумма</p>
     <el-input style="width: 250px" v-model="amount" placeholder="Введите сумму" :formatter="(value) => `${value}`.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')">
@@ -29,8 +29,7 @@
 
     <p>
       Не учитывать в общей сумме
-      <!-- isIgnoredInCalculation -->
-      <el-switch v-model="switchGetSumExpense" />
+      <el-switch v-model="isIgnoredInCalculation" />
     </p>
 
     <div v-if="financialMonitoringStore.pageParams.title == 'Добавление раcхода'">
@@ -68,7 +67,7 @@ export default {
       this.selectedCategory = expense.category;
       this.datePicker = expense.date;
       this.description = expense.description;
-      this.switchGetSumExpense = expense.isIgnoredInCalculation;
+      this.isIgnoredInCalculation = expense.isIgnoredInCalculation;
       this.isFavorite = expense.isFavorite;
     }
   },
@@ -79,13 +78,15 @@ export default {
       datePicker: '',
       isDescription: false,
       description: '',
-      switchGetSumExpense: false,
+      isIgnoredInCalculation: false,
       isFavorite: false,
     };
   },
   methods: {
     backToHome: function () {
-      this.financialMonitoringStore.setPage('expenses');
+      this.financialMonitoringStore.setPage('expenses', {
+        selectedActiveName: this.financialMonitoringStore.pageParams.activeName,
+      });
     },
     addExpense: function (amount, selectedCategory, datePicker) {
     const expense = this.financialMonitoringStore.categories.find(item => item.category == selectedCategory);
@@ -98,10 +99,10 @@ export default {
         category: selectedCategory,
         date: datePicker,
         description: this.description,
-        isIgnoredInCalculation: this.switchGetSumExpense,
+        isIgnoredInCalculation: this.isIgnoredInCalculation,
         isFavorite: this.isFavorite,
       });
-      this.financialMonitoringStore.setPage('expenses')
+      this.financialMonitoringStore.setPage('expenses',)
       }
     },
     getExpense: function (id) {
@@ -115,10 +116,12 @@ export default {
         expense.category = this.selectedCategory;
         expense.date = this.datePicker;
         expense.description = this.description;
-        expense.isIgnoredInCalculation = this.switchGetSumExpense;
+        expense.isIgnoredInCalculation = this.isIgnoredInCalculation;
         expense.isFavorite = this.isFavorite;
       }
-      this.financialMonitoringStore.setPage('expenses')
+      this.financialMonitoringStore.setPage('expenses', {
+        selectedActiveName: this.financialMonitoringStore.pageParams.activeName,
+      })
     },
     checkFieldsAddExpense: function () {
       return this.selectedCategory == 0 || this.amount == 0 || this.datePicker == 0 ? true : false;
