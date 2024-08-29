@@ -80,6 +80,7 @@ export default {
       description: '',
       isIgnoredInCalculation: false,
       isFavorite: false,
+      getActiveName: '',
     };
   },
   methods: {
@@ -102,7 +103,23 @@ export default {
         isIgnoredInCalculation: this.isIgnoredInCalculation,
         isFavorite: this.isFavorite,
       });
-      this.financialMonitoringStore.setPage('expenses',)
+
+      const date = new Date(datePicker);
+      const today = new Date();
+
+      if (date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth()) {
+        this.getActiveName = 'fifth';
+      } else if (date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() - 1) {
+        this.getActiveName = 'fourth';
+      } else if (date >= new Date(today.getFullYear(), today.getMonth() - 5, 1) && date <= today) {
+        this.getActiveName = 'third';
+      } else if (date.getFullYear() === today.getFullYear()) {
+        this.getActiveName = 'second';
+      }
+
+      this.financialMonitoringStore.setPage('expenses', {
+        getActiveName: this.getActiveName,
+      })
       }
     },
     getExpense: function (id) {

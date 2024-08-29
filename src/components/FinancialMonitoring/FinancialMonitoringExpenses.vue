@@ -131,6 +131,10 @@ export default {
     if (this.financialMonitoringStore.pageParams.selectedActiveName) {
       this.activeName = this.financialMonitoringStore.pageParams.selectedActiveName;
     }
+
+    if (this.financialMonitoringStore.pageParams.getActiveName) {
+      this.activeName = this.financialMonitoringStore.pageParams.getActiveName;
+    }
   },
   data() {
     return {
