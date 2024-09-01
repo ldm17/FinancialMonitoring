@@ -39,7 +39,11 @@ export default {
   },
   methods: {
     backToHome: function () {
-      this.financialMonitoringStore.setPage('expenses');
+      this.financialMonitoringStore.setPage('expenses', {
+        selectedTypeSortExpenses: this.financialMonitoringStore.pageParams.typeSortExpenses,
+        selectedTypeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
+        selectedActiveName: this.financialMonitoringStore.pageParams.activeName,
+      });
     },
     goToAddExpense: function() {
       this.financialMonitoringStore.setPage('expenses', {
@@ -47,6 +51,9 @@ export default {
         selectedFilterMinAmount: this.selectedFilterMinAmount,
         selectedFilterMaxAmount: this.selectedFilterMaxAmount,
         selectedTypeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
+        selectedTypeSortExpenses: this.financialMonitoringStore.pageParams.typeSortExpenses,
+        selectedTypeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
+        selectedActiveName: this.financialMonitoringStore.pageParams.activeName,
       });
     },
     checkFieldsFilter: function () {

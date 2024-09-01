@@ -46,7 +46,8 @@ export default {
   methods: {
     backToHome: function () {
       this.financialMonitoringStore.setPage('expenses', {
-        selectedSortTypeExpenses: this.financialMonitoringStore.pageParams.typeSortExpenses,
+        selectedTypeSortExpenses: this.financialMonitoringStore.pageParams.typeSortExpenses,
+        selectedTypeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
         selectedActiveName: this.financialMonitoringStore.pageParams.activeName,
         } 
       );

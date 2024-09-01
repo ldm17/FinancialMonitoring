@@ -119,7 +119,7 @@ export default {
 
       this.financialMonitoringStore.setPage('expenses', {
         getActiveName: this.getActiveName,
-      })
+        });
       }
     },
     getExpense: function (id) {
@@ -137,6 +137,8 @@ export default {
         expense.isFavorite = this.isFavorite;
       }
       this.financialMonitoringStore.setPage('expenses', {
+        selectedTypeSortExpenses: this.financialMonitoringStore.pageParams.typeSortExpenses,
+        selectedTypeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
         selectedActiveName: this.financialMonitoringStore.pageParams.activeName,
       })
     },

@@ -2,7 +2,7 @@
   <div>
     <div class="toolbar">
     <div>
-      <el-select v-model="typeSortExpenses" style="width: 200px; margin-right: 15px" :disabled="!financialMonitoringStore.expenses.length">
+      <el-select v-model="typeSortExpenses" style="width: 200px; margin-right: 15px" :disabled="!filterExpensesByTabs().length">
         <template #prefix>
           <el-icon><Sort /></el-icon>
         </template>
@@ -12,7 +12,7 @@
         <el-option :value="SortType.ByLowestExpenses" label="По наименьшим расходам"></el-option>
       </el-select>
 
-      <el-select v-model="typeFilterExpenses" style="width: 200px" :disabled="!financialMonitoringStore.expenses.length" @change="checkTypeFilterExpenses()">
+      <el-select v-model="typeFilterExpenses" style="width: 200px; margin-right: 15px" :disabled="!filterExpensesByTabs().length" @change="checkTypeFilterExpenses()">
         <template #prefix>
           <el-icon><Filter /></el-icon>
         </template>
@@ -21,6 +21,14 @@
         <el-option :value="FilterType.ByRangeOfAmounts" label="По диапазону сумм"></el-option>
         <el-option :value="FilterType.ByIgnoredInCalculation" label="По неучитываемым расходам"></el-option>
         <el-option :value="FilterType.ByFavorite" label="По помеченным расходам"></el-option>
+      </el-select>
+
+      <el-select v-model="typeGroupExpenses" style="width: 200px" :disabled="!filterExpensesByTabs().length">
+        <template #prefix>
+          <el-icon><Tickets /></el-icon>
+        </template>
+        <el-option :value="GroupType.ByDate" label="По дате"></el-option>
+        <el-option :value="GroupType.ByCategories" label="По категориям"></el-option>
       </el-select>
     </div>
 
@@ -49,7 +57,7 @@
         <el-card style="margin-bottom: 15px;" v-for="group in expenses()" :key="group.id">
             <el-row :gutter="20">
               <el-col :span="12">
-                {{ group.date }}
+                {{ typeGroupExpenses == GroupType.ByDate ? group.date : group.category }}
               </el-col>
               <el-col :span="12" style="text-align: right">
                 <span style="color: red">-{{ group.items.reduce((sum, item) => sum + item.amount, 0) }}</span>
@@ -59,7 +67,7 @@
             <div class="visible-actions-note" @click="openInfoNote(item.id)" v-for="(item, index) in group.items" :key="item.id">
               <el-row :gutter="20" style="margin-top: 15px;">
                 <el-col :span="12">
-                  {{ item.category }}
+                  {{ typeGroupExpenses == GroupType.ByDate ? item.category : item.date}}
                 </el-col>
                 <el-col style="text-align: right;" :span="12">
                   <span v-if="item.isFavorite">
@@ -112,6 +120,11 @@ const FilterType = {
   ByFavorite: 4,
 };
 
+const GroupType = {
+  ByDate: 0,
+  ByCategories: 1,
+};
+
 export default {
   name: "financial-monitoring-expenses",
   components: {},
@@ -120,12 +133,12 @@ export default {
     return { financialMonitoringStore };
   },
   created() {
-    if (this.financialMonitoringStore.pageParams.selectedTypeFilterExpenses) {
-      this.typeFilterExpenses = this.financialMonitoringStore.pageParams.selectedTypeFilterExpenses;
+    if (this.financialMonitoringStore.pageParams.selectedTypeSortExpenses) {
+      this.typeSortExpenses = this.financialMonitoringStore.pageParams.selectedTypeSortExpenses;
     }
 
-    if (this.financialMonitoringStore.pageParams.selectedSortTypeExpenses) {
-      this.typeSortExpenses = this.financialMonitoringStore.pageParams.selectedSortTypeExpenses;
+    if (this.financialMonitoringStore.pageParams.selectedTypeFilterExpenses) {
+      this.typeFilterExpenses = this.financialMonitoringStore.pageParams.selectedTypeFilterExpenses;
     }
 
     if (this.financialMonitoringStore.pageParams.selectedActiveName) {
@@ -142,6 +155,8 @@ export default {
       typeSortExpenses: SortType.ByDateNew,
       FilterType: FilterType,
       typeFilterExpenses: FilterType.NotSelected,
+      GroupType: GroupType,
+      typeGroupExpenses: GroupType.ByDate,
       activeName: 'fifth',
       selectedFilterDatePicker: '',
     };
@@ -167,7 +182,9 @@ export default {
 
       if (this.typeFilterExpenses !== FilterType.NotSelected && this.typeFilterExpenses !== FilterType.ByIgnoredInCalculation && this.typeFilterExpenses !== FilterType.ByFavorite) {
         this.financialMonitoringStore.setPage('filterOptions', {
+          typeSortExpenses: this.typeSortExpenses,
           typeFilterExpenses: this.typeFilterExpenses,
+          activeName: this.activeName,
           FilterType: this.FilterType,
         });
       }
@@ -179,25 +196,30 @@ export default {
         expensesArray = this.filterExpenses();
       }
     
-      let groupedExpenses = {};
+      const groupedExpenses = this.groupExpenses(expensesArray);
 
-      expensesArray.forEach(item => {
-        const dateKey = item.date.split(' ')[0];
-
-        if (!groupedExpenses[dateKey]) {
-          groupedExpenses[dateKey] = [];
-        }
-        groupedExpenses[dateKey].push(item);
-      });
-
-      let result = Object.keys(groupedExpenses).map(date => {
+      const result = Object.keys(groupedExpenses).map(key => {
         return {
-          date: date,
-          items: groupedExpenses[date]
+          [this.typeGroupExpenses === GroupType.ByDate ? 'date' : 'category']: key,
+          items: groupedExpenses[key]
         };
       });
 
       return this.sortExpenses(result);
+    },
+    groupExpenses: function (expensesArray) {
+      const grouped = {};
+
+      expensesArray.forEach(item => {
+        const key = this.typeGroupExpenses === GroupType.ByDate ? item.date.split(' ')[0] : item.category;
+
+        if (!grouped[key]) {
+          grouped[key] = [];
+        }
+        grouped[key].push(item);
+      });
+
+      return grouped;
     },
     sortExpenses: function (expensesArray) {
       if (!expensesArray || expensesArray.length === 0) return expensesArray;
@@ -342,6 +364,8 @@ export default {
       this.financialMonitoringStore.setPage('addNote', {
         title: 'Редактирование раcхода',
         id: id,
+        typeSortExpenses: this.typeSortExpenses,
+        typeFilterExpenses: this.typeFilterExpenses,
         activeName: this.activeName,
       });
     },
@@ -349,6 +373,7 @@ export default {
       this.financialMonitoringStore.setPage('infoNote', {
         id: id,
         typeSortExpenses: this.typeSortExpenses,
+        typeFilterExpenses: this.typeFilterExpenses,
         activeName: this.activeName,
       });
     },
