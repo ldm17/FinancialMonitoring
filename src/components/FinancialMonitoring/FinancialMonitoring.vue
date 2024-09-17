@@ -1,6 +1,7 @@
 <template>
   <div class="layout-container">
     <el-container style="height: 100%">
+      <el-backtop :right="100" :bottom="100" />
       <el-aside width="250px">
         <h1 style="margin-left: 25px;">Financial</h1>
         <el-menu default-active="1">
@@ -20,7 +21,7 @@
       <el-container>
         <el-header style="text-align: right; font-size: 15px; height: 70px;">
           <div class="header">
-            <el-button v-if="financialMonitoringStore.currentPage !== 'addNote' && financialMonitoringStore.currentPage !== 'filterOptions'" type="primary" :icon="Icons.Plus" @click="openAddExpense()">Добавить</el-button>
+            <el-button v-if="financialMonitoringStore.currentPage !== 'addNote' && financialMonitoringStore.currentPage !== 'rangeFilter'" type="primary" :icon="Icons.Plus" @click="openAddExpense()">Добавить</el-button>
           </div>
         </el-header>
 
@@ -41,9 +42,9 @@
               </financial-monitoring-add-note>
             </div>
 
-            <div v-if="financialMonitoringStore.currentPage === 'filterOptions'">
-              <financial-monitoring-filter-options>
-              </financial-monitoring-filter-options>
+            <div v-if="financialMonitoringStore.currentPage === 'rangeFilter'">
+              <financial-monitoring-range-filter>
+              </financial-monitoring-range-filter>
             </div>
 
             <div v-if="financialMonitoringStore.currentPage === 'infoNote'">
@@ -63,7 +64,7 @@ import { useFinancialMonitoringStore } from '@/stores/FinancialMonitoringStore';
 import FinancialMonitoringExpenses from './FinancialMonitoringExpenses.vue';
 import FinancialMonitoringIncomes from './FinancialMonitoringIncomes.vue';
 import FinancialMonitoringAddNote from './FinancialMonitoringAddNote.vue';
-import FinancialMonitoringFilterOptions from './FinancialMonitoringFilterOptions.vue';
+import FinancialMonitoringRangeFilter from './FinancialMonitoringRangeFilter.vue';
 import FinancialMonitoringInfoNote from './FinancialMonitoringInfoNote.vue';
 
 export default {
@@ -72,7 +73,7 @@ export default {
     FinancialMonitoringExpenses,
     FinancialMonitoringIncomes,
     FinancialMonitoringAddNote,
-    FinancialMonitoringFilterOptions,
+    FinancialMonitoringRangeFilter,
     FinancialMonitoringInfoNote,
   },
   setup() {

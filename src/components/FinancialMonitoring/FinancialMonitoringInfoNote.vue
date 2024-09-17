@@ -48,6 +48,7 @@ export default {
       this.financialMonitoringStore.setPage('expenses', {
         selectedTypeSortExpenses: this.financialMonitoringStore.pageParams.typeSortExpenses,
         selectedTypeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
+        selectedTypeGroupExpenses: this.financialMonitoringStore.pageParams.typeGroupExpenses,
         selectedActiveName: this.financialMonitoringStore.pageParams.activeName,
         } 
       );

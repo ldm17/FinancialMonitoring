@@ -8,16 +8,39 @@
     </el-input>
 
     <p>Категория</p>
-    <el-select style="width: 250px" v-model="selectedCategory" placeholder="Выберите категорию">
+    <!-- <el-select style="width: 250px" v-model="selectedCategory" placeholder="Выберите категорию">
       <el-option v-for="item in financialMonitoringStore.categories" :key="item.category" :value="item.category" />
-    </el-select>
+    </el-select> -->
+
+    <div class="picker-category">
+      <el-autocomplete
+        :class="{ 'error-border': errorMessage }"
+        v-model="selectedCategory"
+        :fetch-suggestions="querySearch"
+        :trigger-on-focus="false"
+        placeholder="Категория"
+        clearable>
+      </el-autocomplete>
+
+      <el-button @click="isCategoryListDialogVisible = true"><el-icon><ArrowRight /></el-icon></el-button>
+    </div>
+
+    <div class="error-message" v-if="errorMessage">Выбранная категория не найдена. Пожалуйста, выберите другую категорию.</div>
+
+    <el-dialog v-model="isCategoryListDialogVisible" title="Выберите категорию" width="500" center align-center>
+      <span>
+        <financial-monitoring-category-list
+        @category-selected="onCategorySelected">
+        </financial-monitoring-category-list>
+      </span>
+    </el-dialog>
 
     <p>Дата</p>
-    <!-- <el-date-picker v-model="datePicker" type="date" placeholder="Выберите дату" size="default" format="DD/MM/YYYY" value-format="DD/MM/YYYY" /> -->
-    <el-date-picker style="width: 250px" v-model="datePicker" type="datetime" placeholder="Выберите дату" format="YYYY/MM/DD HH:mm" value-format="YYYY/MM/DD HH:mm" time-format="HH:mm" />
+    <el-date-picker style="width: 250px" v-model="datePicker" type="date" placeholder="Выберите дату" size="default" format="YYYY/MM/DD" value-format="YYYY/MM/DD" />
+    <!-- <el-date-picker style="width: 250px" v-model="datePicker" type="datetime" placeholder="Выберите дату" format="YYYY/MM/DD HH:mm" value-format="YYYY/MM/DD HH:mm" time-format="HH:mm" /> -->
 
     <p v-if="isDescription">
-      <el-input v-model="description" style="width: 250px" :autosize="{ minRows: 2, maxRows: 4 }" type="textarea" placeholder="Примечание" />
+      <el-input style="width: 250px" v-model="description" :autosize="{ minRows: 2, maxRows: 4 }" type="textarea" placeholder="Примечание" />
     </p>
 
     <p>
@@ -51,10 +74,13 @@
 <script>
 import { useFinancialMonitoringStore } from '@/stores/FinancialMonitoringStore';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import FinancialMonitoringCategoryList from './FinancialMonitoringCategoryList.vue';
 
 export default {
   name: "financial-monitoring-add-note",
-  components: {},
+  components: {
+    FinancialMonitoringCategoryList,
+  },
   setup() {
     const financialMonitoringStore = useFinancialMonitoringStore();
     return { financialMonitoringStore };
@@ -71,6 +97,9 @@ export default {
       this.isFavorite = expense.isFavorite;
     }
   },
+  mounted() {
+    this.categoryListForSuggestion = this.loadAllCategoryList();
+  },
   data() {
     return {
       amount: null,
@@ -81,6 +110,9 @@ export default {
       isIgnoredInCalculation: false,
       isFavorite: false,
       getActiveName: '',
+      isCategoryListDialogVisible: false,
+      categoryListForSuggestion: [],
+      errorMessage: false,
     };
   },
   methods: {
@@ -90,7 +122,10 @@ export default {
       });
     },
     addExpense: function (amount, selectedCategory, datePicker) {
-    const expense = this.financialMonitoringStore.categories.find(item => item.category == selectedCategory);
+    // const expense = this.financialMonitoringStore.categories.find(item => item.label == selectedCategory);
+
+    const allCategories = this.loadAllCategoryList();
+    const expense = allCategories.find(item => item.value === selectedCategory);
 
     if (expense) {
       this.financialMonitoringStore.addNote({
@@ -120,6 +155,10 @@ export default {
       this.financialMonitoringStore.setPage('expenses', {
         getActiveName: this.getActiveName,
         });
+
+      this.errorMessage = false;
+      } else {
+        this.errorMessage = true;
       }
     },
     getExpense: function (id) {
@@ -139,6 +178,7 @@ export default {
       this.financialMonitoringStore.setPage('expenses', {
         selectedTypeSortExpenses: this.financialMonitoringStore.pageParams.typeSortExpenses,
         selectedTypeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
+        selectedTypeGroupExpenses: this.financialMonitoringStore.pageParams.typeGroupExpenses,
         selectedActiveName: this.financialMonitoringStore.pageParams.activeName,
       })
     },
@@ -178,9 +218,70 @@ export default {
         })
       })
     },
+    onCategorySelected: function (category) {
+      this.selectedCategory = category.label;
+      this.isCategoryListDialogVisible = false;
+    },
+    querySearch: function (queryString, callback) {
+      const results = queryString ? this.categoryListForSuggestion.filter(this.createFilter(queryString)) : this.categoryListForSuggestion;
+      callback(results);
+    },
+    createFilter: function (queryString) {
+      return (labelCategory) => {
+        return (labelCategory.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0);
+      };
+    },
+    loadAllCategoryList: function () {
+      const store = this.financialMonitoringStore;
+      const categories = store.categories;
+
+      const extractCategories = (categories) => {
+        let result = [];
+        categories.forEach(category => {
+          result.push({
+            value: store.getCategoryLabelById(category.id),
+          });
+
+          if (category.children && category.children.length > 0) {
+            result = result.concat(extractCategories(category.children));
+          }
+        });
+        return result;
+      };
+      
+      return extractCategories(categories);
+    },
   },
 };
 </script>
 <style lang="scss">
+
+.picker-category {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 10px;
+  width: 250px;
+
+  .el-autocomplete {
+    width: 100%;
+  }
+
+  .el-button {
+    width: 32px;
+  }
+}
+
+.error-border {
+  border: 1px solid red;
+  border-radius: 5px;
+}
+
+.error-message {
+  max-width: 250px;
+  color: red;
+  margin-top: 10px;
+  font-size: 15px;
+}
 </style>
 

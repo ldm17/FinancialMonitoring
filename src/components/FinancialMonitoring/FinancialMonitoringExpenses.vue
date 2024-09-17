@@ -23,6 +23,23 @@
         <el-option :value="FilterType.ByFavorite" label="По помеченным расходам"></el-option>
       </el-select>
 
+      <el-dialog v-model="isCategoryListDialogVisible" title="Выберите категорию" width="500" center align-center>
+        <span>
+          <financial-monitoring-category-list
+          @category-selected="onCategorySelected">
+          </financial-monitoring-category-list>
+        </span>
+      </el-dialog>
+
+      <el-dialog v-model="isFilterByRangeOfAmountsVisible" title="Выберите диапазон сумм" width="500" center align-center>
+        <span>
+          <financial-monitoring-range-filter
+          @range-of-amounts-selected="onRangeOfAmountsSelected"
+          @close-range-filter="isFilterByRangeOfAmountsVisible = false">
+          </financial-monitoring-range-filter>
+        </span>
+      </el-dialog>
+
       <el-select v-model="typeGroupExpenses" style="width: 200px" :disabled="!filterExpensesByTabs().length">
         <template #prefix>
           <el-icon><Tickets /></el-icon>
@@ -57,7 +74,7 @@
         <el-card style="margin-bottom: 15px;" v-for="group in expenses()" :key="group.id">
             <el-row :gutter="20">
               <el-col :span="12">
-                {{ typeGroupExpenses == GroupType.ByDate ? group.date : group.category }}
+                {{ typeGroupExpenses == GroupType.ByDate ? formatDate(group.date) : group.category }}
               </el-col>
               <el-col :span="12" style="text-align: right">
                 <span style="color: red">-{{ group.items.reduce((sum, item) => sum + item.amount, 0) }}</span>
@@ -67,7 +84,7 @@
             <div class="visible-actions-note" @click="openInfoNote(item.id)" v-for="(item, index) in group.items" :key="item.id">
               <el-row :gutter="20" style="margin-top: 15px;">
                 <el-col :span="12">
-                  {{ typeGroupExpenses == GroupType.ByDate ? item.category : item.date}}
+                  {{ typeGroupExpenses == GroupType.ByDate ? item.category : formatDate(item.date)}}
                 </el-col>
                 <el-col style="text-align: right;" :span="12">
                   <span v-if="item.isFavorite">
@@ -104,6 +121,8 @@
 <script>
 import { useFinancialMonitoringStore } from "@/stores/FinancialMonitoringStore";
 import { ElMessage, ElMessageBox } from 'element-plus';
+import FinancialMonitoringRangeFilter from "./FinancialMonitoringRangeFilter.vue";
+import FinancialMonitoringCategoryList from "./FinancialMonitoringCategoryList.vue";
 
 const SortType = {
   ByDateNew: 0,
@@ -125,9 +144,44 @@ const GroupType = {
   ByCategories: 1,
 };
 
+const Months = {
+  January: 0,
+  February: 1,
+  March: 2,
+  April: 3,
+  May: 4,
+  June: 5,
+  July: 6,
+  August: 7,
+  September: 8,
+  October: 9,
+  November: 10,
+  December: 11
+};
+
+const DaysOfWeek = {
+  Monday: 0,
+  Tuesday: 1,
+  Wednesday: 2,
+  Thursday: 3,
+  Friday: 4,
+  Saturday: 5,
+  Sunday: 6
+};
+
+const monthsInRussian = [
+  'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+  'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
+];
+
+const daysOfWeekInRussian = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
+
 export default {
   name: "financial-monitoring-expenses",
-  components: {},
+  components: {
+    FinancialMonitoringRangeFilter,
+    FinancialMonitoringCategoryList,
+  },
   setup() {
     const financialMonitoringStore = useFinancialMonitoringStore();
     return { financialMonitoringStore };
@@ -139,6 +193,10 @@ export default {
 
     if (this.financialMonitoringStore.pageParams.selectedTypeFilterExpenses) {
       this.typeFilterExpenses = this.financialMonitoringStore.pageParams.selectedTypeFilterExpenses;
+    }
+
+    if (this.financialMonitoringStore.pageParams.selectedTypeGroupExpenses) {
+      this.typeGroupExpenses = this.financialMonitoringStore.pageParams.selectedTypeGroupExpenses;
     }
 
     if (this.financialMonitoringStore.pageParams.selectedActiveName) {
@@ -159,6 +217,12 @@ export default {
       typeGroupExpenses: GroupType.ByDate,
       activeName: 'fifth',
       selectedFilterDatePicker: '',
+      isFilterByRangeOfAmountsVisible: false,
+      selectedFilterMinAmount: '',
+      selectedFilterMaxAmount: '',
+      applyRangeFilter: false,
+      isCategoryListDialogVisible: false,
+      selectedFilterCategory: '',
     };
   },
   methods: {
@@ -176,17 +240,29 @@ export default {
       return sum
     },
     checkTypeFilterExpenses: function () {
-      this.financialMonitoringStore.pageParams.selectedFilterCategory = '';
-      this.financialMonitoringStore.pageParams.selectedFilterMinAmount = '';
-      this.financialMonitoringStore.pageParams.selectedFilterMaxAmount = '';
+      // this.financialMonitoringStore.pageParams.selectedFilterCategory = '';
+      // this.financialMonitoringStore.pageParams.selectedFilterMinAmount = '';
+      // this.financialMonitoringStore.pageParams.selectedFilterMaxAmount = '';
 
-      if (this.typeFilterExpenses !== FilterType.NotSelected && this.typeFilterExpenses !== FilterType.ByIgnoredInCalculation && this.typeFilterExpenses !== FilterType.ByFavorite) {
-        this.financialMonitoringStore.setPage('filterOptions', {
-          typeSortExpenses: this.typeSortExpenses,
-          typeFilterExpenses: this.typeFilterExpenses,
-          activeName: this.activeName,
-          FilterType: this.FilterType,
-        });
+      // if (this.typeFilterExpenses !== FilterType.NotSelected && this.typeFilterExpenses !== FilterType.ByIgnoredInCalculation && this.typeFilterExpenses !== FilterType.ByFavorite) {
+      //   this.financialMonitoringStore.setPage('filterOptions', {
+      //     typeSortExpenses: this.typeSortExpenses,
+      //     typeFilterExpenses: this.typeFilterExpenses,
+      //     typeGroupExpenses: this.typeGroupExpenses,
+      //     activeName: this.activeName,
+      //     FilterType: this.FilterType,
+      //   });
+      // }
+
+      if (this.typeFilterExpenses == FilterType.NotSelected) {
+        this.selectedFilterMinAmount = ''; // не очищается
+        this.selectedFilterMaxAmount = ''; // не очищается
+        this.selectedFilterCategory = '';
+      } else if (this.typeFilterExpenses == FilterType.ByCategories) {
+          this.isCategoryListDialogVisible = true;
+      } else if (this.typeFilterExpenses == FilterType.ByRangeOfAmounts) {
+          this.isFilterByRangeOfAmountsVisible = true;
+          this.applyRangeFilter = false;
       }
     },
     expenses: function () {
@@ -211,7 +287,7 @@ export default {
       const grouped = {};
 
       expensesArray.forEach(item => {
-        const key = this.typeGroupExpenses === GroupType.ByDate ? item.date.split(' ')[0] : item.category;
+        const key = this.typeGroupExpenses === GroupType.ByDate ? item.date : item.category;
 
         if (!grouped[key]) {
           grouped[key] = [];
@@ -255,16 +331,16 @@ export default {
     },
     filterExpenses: function () {
       let expensesArray = this.filterExpensesByTabs();
-      let selectedFilterCategory = this.financialMonitoringStore.pageParams.selectedFilterCategory;
-      let selectedFilterMinAmount = this.financialMonitoringStore.pageParams.selectedFilterMinAmount;
-      let selectedFilterMaxAmount = this.financialMonitoringStore.pageParams.selectedFilterMaxAmount;
+      // let selectedFilterCategory = this.financialMonitoringStore.pageParams.selectedFilterCategory;
+      // let selectedFilterMinAmount = this.financialMonitoringStore.pageParams.selectedFilterMinAmount;
+      // let selectedFilterMaxAmount = this.financialMonitoringStore.pageParams.selectedFilterMaxAmount;
 
-      if (selectedFilterCategory) {
-        expensesArray = expensesArray.filter(item => item.category === selectedFilterCategory);
-      } else if (selectedFilterMinAmount && selectedFilterMinAmount) {
+      if (this.selectedFilterCategory) {
+        expensesArray = expensesArray.filter(item => item.category === this.selectedFilterCategory);
+      } else if (this.typeFilterExpenses == FilterType.ByRangeOfAmounts && this.applyRangeFilter) {
         expensesArray = expensesArray.filter(item => {
           const amount = item.amount;
-          return amount >= selectedFilterMinAmount && amount <= selectedFilterMaxAmount
+          return amount >= this.selectedFilterMinAmount && amount <= this.selectedFilterMaxAmount
         });
       } else if (this.typeFilterExpenses == FilterType.ByIgnoredInCalculation) {
         expensesArray = expensesArray.filter(item => item.isIgnoredInCalculation);
@@ -366,6 +442,7 @@ export default {
         id: id,
         typeSortExpenses: this.typeSortExpenses,
         typeFilterExpenses: this.typeFilterExpenses,
+        typeGroupExpenses: this.typeGroupExpenses,
         activeName: this.activeName,
       });
     },
@@ -374,8 +451,26 @@ export default {
         id: id,
         typeSortExpenses: this.typeSortExpenses,
         typeFilterExpenses: this.typeFilterExpenses,
+        typeGroupExpenses: this.typeGroupExpenses,
         activeName: this.activeName,
       });
+    },
+    formatDate: function (dateString) {
+      const [year, month, day] = dateString.split('/').map(Number);
+      const date = new Date(year, month - 1, day);
+      const dayOfWeek = daysOfWeekInRussian[date.getDay() === 0 ? 6 : date.getDay() - 1];
+
+      return `${day} ${monthsInRussian[month - 1]} ${year}, ${dayOfWeek}`;
+    },
+    onRangeOfAmountsSelected: function (amount) {
+      this.selectedFilterMinAmount = amount.minAmount;
+      this.selectedFilterMaxAmount = amount.maxAmount;
+      this.isFilterByRangeOfAmountsVisible = false;
+      this.applyRangeFilter = true;
+    },
+    onCategorySelected: function (category) {
+      this.selectedFilterCategory = category.label;
+      this.isCategoryListDialogVisible = false;
     },
   },
 };
