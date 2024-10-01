@@ -31,14 +31,14 @@
         </span>
       </el-dialog>
 
-      <el-dialog v-model="isFilterByRangeOfAmountsVisible" title="Выберите диапазон сумм" width="500" center align-center>
-        <span>
-          <financial-monitoring-range-filter
-          @range-of-amounts-selected="onRangeOfAmountsSelected"
-          @close-range-filter="isFilterByRangeOfAmountsVisible = false">
-          </financial-monitoring-range-filter>
-        </span>
-      </el-dialog>
+      <div v-if="isFilterByRangeOfAmountsVisible">
+        <financial-monitoring-range-filter-modal
+          :selected-min-amount="selectedFilterMinAmount"
+          :selected-max-amount="selectedFilterMaxAmount"
+          @update-filter="onRangeOfAmountsSelected"
+          @close="handleClose">
+        </financial-monitoring-range-filter-modal>
+      </div>
 
       <el-select v-model="typeGroupExpenses" style="width: 200px" :disabled="!filterExpensesByTabs().length">
         <template #prefix>
@@ -50,15 +50,26 @@
     </div>
 
     <div>
-      <el-tabs v-model="activeName" @tab-click="filterExpensesByTabs">
-        <el-tab-pane label="Пользовательский" name="first">
-          <p>Выберите диапазон дат</p>
-            <el-date-picker v-model="selectedFilterDatePicker" type="daterange" unlink-panels range-separator="|" start-placeholder="Дата начала" end-placeholder="Дата окончания" format="YYYY/MM/DD HH:mm" value-format="YYYY/MM/DD HH:mm" />
+      <el-tabs v-model="activeTab">
+        <el-tab-pane
+          v-for="tab in tabs"
+          :key="tab.name"
+          :label="tab.label"
+          :name="tab.name"
+        >
+        <p v-if="tab.name === 'custom'">Выберите диапазон дат</p>
+        <el-date-picker
+          v-if="tab.name === 'custom'"
+          v-model="selectedFilterDatePicker"
+          type="daterange"
+          unlink-panels
+          range-separator="|"
+          start-placeholder="Дата начала"
+          end-placeholder="Дата окончания"
+          format="YYYY/MM/DD"
+          value-format="YYYY/MM/DD"
+        />
         </el-tab-pane>
-        <el-tab-pane label="Год" name="second"></el-tab-pane>
-        <el-tab-pane label="Полгода" name="third"></el-tab-pane>
-        <el-tab-pane label="Прошлый месяц" name="fourth"></el-tab-pane>
-        <el-tab-pane label="Текущий месяц" name="fifth"></el-tab-pane>
       </el-tabs>
     </div>
   </div>
@@ -81,10 +92,22 @@
               </el-col>
             </el-row>
 
+            <el-row>
+              <el-col :span="24">
+                <div v-if="typeGroupExpenses == GroupType.ByCategories">
+                  <span>{{ group.items.length }} {{ getExpenseWord(group.items.length) }}</span>
+                  <el-divider style="margin: 5px 0px" />
+                </div>
+              </el-col>
+            </el-row>
+
             <div class="visible-actions-note" @click="openInfoNote(item.id)" v-for="(item, index) in group.items" :key="item.id">
               <el-row :gutter="20" style="margin-top: 15px;">
                 <el-col :span="12">
-                  {{ typeGroupExpenses == GroupType.ByDate ? item.category : formatDate(item.date)}}
+                  <div>
+                    {{ typeGroupExpenses == GroupType.ByDate ? item.category : formatDate(item.date)}}
+                  </div>
+                  <span>{{ item.date.split(' ')[1] }}</span>
                 </el-col>
                 <el-col style="text-align: right;" :span="12">
                   <span v-if="item.isFavorite">
@@ -104,11 +127,12 @@
               </el-row>
                 <el-row :gutter="20">
                   <el-col :span="24" style="text-align: right;">
-                    <el-button @click.stop="isFavoriteNote(item.id)" size="small"><el-icon><CollectionTag /></el-icon></el-button>
+                    <el-button @click.stop="isFavoriteExpense(item.id)" size="small"><el-icon><CollectionTag /></el-icon></el-button>
                     <el-button @click.stop="openEditNote(item.id)" size="small"><el-icon><Edit /></el-icon></el-button>
                     <el-button @click.stop="deleteExpense(item.id)" size="small"><el-icon><Delete /></el-icon></el-button>
                   </el-col>
               </el-row>
+
               <el-divider style="margin: 5px 0px" v-if="index < group.items.length - 1" />
             </div>
         </el-card>
@@ -121,8 +145,9 @@
 <script>
 import { useFinancialMonitoringStore } from "@/stores/FinancialMonitoringStore";
 import { ElMessage, ElMessageBox } from 'element-plus';
-import FinancialMonitoringRangeFilter from "./FinancialMonitoringRangeFilter.vue";
+import FinancialMonitoringRangeFilterModal from "./FinancialMonitoringRangeFilterModal.vue";
 import FinancialMonitoringCategoryList from "./FinancialMonitoringCategoryList.vue";
+import formatDate from "../../stores/utils.js";
 
 const SortType = {
   ByDateNew: 0,
@@ -169,17 +194,10 @@ const DaysOfWeek = {
   Sunday: 6
 };
 
-const monthsInRussian = [
-  'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-  'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
-];
-
-const daysOfWeekInRussian = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'];
-
 export default {
   name: "financial-monitoring-expenses",
   components: {
-    FinancialMonitoringRangeFilter,
+    FinancialMonitoringRangeFilterModal,
     FinancialMonitoringCategoryList,
   },
   setup() {
@@ -187,6 +205,17 @@ export default {
     return { financialMonitoringStore };
   },
   created() {
+    this.initializeTabs()
+
+    if (this.financialMonitoringStore.pageParams.selectedDate) {
+      this.initializeTabs(this.financialMonitoringStore.pageParams.selectedDate);
+    } else if (this.financialMonitoringStore.pageParams.selectedActiveTab) {
+      this.activeTab = this.financialMonitoringStore.pageParams.selectedActiveTab;
+    } else {
+      const lastTab = this.tabs[this.tabs.length - 1];
+      this.activeTab = lastTab.name;
+    }
+
     if (this.financialMonitoringStore.pageParams.selectedTypeSortExpenses) {
       this.typeSortExpenses = this.financialMonitoringStore.pageParams.selectedTypeSortExpenses;
     }
@@ -199,13 +228,22 @@ export default {
       this.typeGroupExpenses = this.financialMonitoringStore.pageParams.selectedTypeGroupExpenses;
     }
 
-    if (this.financialMonitoringStore.pageParams.selectedActiveName) {
-      this.activeName = this.financialMonitoringStore.pageParams.selectedActiveName;
+    if (this.financialMonitoringStore.pageParams.currentTabs) {
+      this.tabs = this.financialMonitoringStore.pageParams.currentTabs;
     }
 
-    if (this.financialMonitoringStore.pageParams.getActiveName) {
-      this.activeName = this.financialMonitoringStore.pageParams.getActiveName;
+    if (this.financialMonitoringStore.pageParams.selectedFilterCategory) {
+      this.selectedFilterCategory = this.financialMonitoringStore.pageParams.selectedFilterCategory;
     }
+
+    if (this.financialMonitoringStore.pageParams.removeEmptyTabs) {
+      this.removeEmptyTabs();
+    }
+  },
+  computed: {
+    formattedDate() {
+      return formatDate(this.dateString);
+    },
   },
   data() {
     return {
@@ -215,14 +253,18 @@ export default {
       typeFilterExpenses: FilterType.NotSelected,
       GroupType: GroupType,
       typeGroupExpenses: GroupType.ByDate,
-      activeName: 'fifth',
       selectedFilterDatePicker: '',
+      activeTab: '',
+      tabs: [
+        { label: 'Пользовательский', name: 'custom' },
+      ],
       isFilterByRangeOfAmountsVisible: false,
-      selectedFilterMinAmount: '',
-      selectedFilterMaxAmount: '',
+      selectedFilterMinAmount: null,
+      selectedFilterMaxAmount: null,
       applyRangeFilter: false,
       isCategoryListDialogVisible: false,
       selectedFilterCategory: '',
+      formatDate: formatDate,
     };
   },
   methods: {
@@ -240,23 +282,9 @@ export default {
       return sum
     },
     checkTypeFilterExpenses: function () {
-      // this.financialMonitoringStore.pageParams.selectedFilterCategory = '';
-      // this.financialMonitoringStore.pageParams.selectedFilterMinAmount = '';
-      // this.financialMonitoringStore.pageParams.selectedFilterMaxAmount = '';
-
-      // if (this.typeFilterExpenses !== FilterType.NotSelected && this.typeFilterExpenses !== FilterType.ByIgnoredInCalculation && this.typeFilterExpenses !== FilterType.ByFavorite) {
-      //   this.financialMonitoringStore.setPage('filterOptions', {
-      //     typeSortExpenses: this.typeSortExpenses,
-      //     typeFilterExpenses: this.typeFilterExpenses,
-      //     typeGroupExpenses: this.typeGroupExpenses,
-      //     activeName: this.activeName,
-      //     FilterType: this.FilterType,
-      //   });
-      // }
-
       if (this.typeFilterExpenses == FilterType.NotSelected) {
-        this.selectedFilterMinAmount = ''; // не очищается
-        this.selectedFilterMaxAmount = ''; // не очищается
+        this.selectedFilterMinAmount = null;
+        this.selectedFilterMaxAmount = null;
         this.selectedFilterCategory = '';
       } else if (this.typeFilterExpenses == FilterType.ByCategories) {
           this.isCategoryListDialogVisible = true;
@@ -287,7 +315,9 @@ export default {
       const grouped = {};
 
       expensesArray.forEach(item => {
-        const key = this.typeGroupExpenses === GroupType.ByDate ? item.date : item.category;
+        const dateKey = item.date.split(' ')[0];
+
+        const key = this.typeGroupExpenses === GroupType.ByDate ? dateKey : item.category;
 
         if (!grouped[key]) {
           grouped[key] = [];
@@ -301,10 +331,12 @@ export default {
       if (!expensesArray || expensesArray.length === 0) return expensesArray;
 
       const groupedExpenses = expensesArray.map(group => {
-      const totalAmount = group.items.reduce((sum, item) => sum + item.amount, 0);
+        const totalAmount = group.items.reduce((sum, item) => sum + item.amount, 0);
         return {
           ...group,
           totalAmount,
+          minDate: Math.min(...group.items.map(item => new Date(item.date))),
+          maxDate: Math.max(...group.items.map(item => new Date(item.date)))
         };
       });
 
@@ -312,15 +344,15 @@ export default {
         group.items.sort((a, b) => {
           const dateA = new Date(a.date);
           const dateB = new Date(b.date);
-          return this.typeSortExpenses == SortType.ByDateNew ? dateB - dateA : dateA - dateB
+          return this.typeSortExpenses == SortType.ByDateNew ? dateB - dateA : dateA - dateB;
         });
       });
 
       switch (this.typeSortExpenses) {
         case SortType.ByDateNew:
-          return groupedExpenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+          return groupedExpenses.sort((a, b) => b.maxDate - a.maxDate);
         case SortType.ByDateOld:
-          return groupedExpenses.sort((a, b) => new Date(a.date) - new Date(b.date));  
+          return groupedExpenses.sort((a, b) => a.minDate - b.minDate);
         case SortType.ByHighestExpenses:
           return groupedExpenses.sort((a, b) => b.totalAmount - a.totalAmount);
         case SortType.ByLowestExpenses:
@@ -331,9 +363,6 @@ export default {
     },
     filterExpenses: function () {
       let expensesArray = this.filterExpensesByTabs();
-      // let selectedFilterCategory = this.financialMonitoringStore.pageParams.selectedFilterCategory;
-      // let selectedFilterMinAmount = this.financialMonitoringStore.pageParams.selectedFilterMinAmount;
-      // let selectedFilterMaxAmount = this.financialMonitoringStore.pageParams.selectedFilterMaxAmount;
 
       if (this.selectedFilterCategory) {
         expensesArray = expensesArray.filter(item => item.category === this.selectedFilterCategory);
@@ -353,62 +382,82 @@ export default {
     filterExpensesByTabs: function () {
       let expensesArray = this.financialMonitoringStore.expenses;
 
-      if (this.activeName == 'fifth') {
-        const today = new Date();
-        const startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-        const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      if (this.activeTab.match(/^\d{2}\/\d{4}$/)) {
+        const [month, year] = this.activeTab.split('/').map(Number);
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 0, 23, 59, 59, 999);
 
-        expensesArray = expensesArray.filter(item => {
-          const date = new Date(item.date); 
-          return date >= startDate && date <= endDate
-        });
-      } else if (this.activeName == 'fourth') {
-        const today = new Date();
-        const startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-        const endDate = new Date(today.getFullYear(), today.getMonth(), 0);
-
-        expensesArray = expensesArray.filter(item => {
-          const date = new Date(item.date); 
-          return date >= startDate && date <= endDate
-        });
-      } else if (this.activeName == 'third') {
-        const today = new Date();
-        const startDate = new Date(today.getFullYear(), today.getMonth() - 5, 1);
-        const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-
-        expensesArray = expensesArray.filter(item => {
-          const date = new Date(item.date); 
-          return date >= startDate && date <= endDate
-        });
-      } else if (this.activeName == 'second') {
-        const today = new Date();
-        const startDate = new Date(today.getFullYear() - 1, 0, 1);
-        const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-
-        expensesArray = expensesArray.filter(item => {
-          const date = new Date(item.date); 
-          return date >= startDate && date <= endDate
-        });
-      } else if (this.activeName == 'first') {
+        expensesArray = this.financialMonitoringStore.getExpensesByRangeDate(startDate, endDate);
+      } else if (this.activeTab === 'custom') {
         const startDate = new Date(this.selectedFilterDatePicker?.[0]);
         const endDate = new Date(this.selectedFilterDatePicker?.[1]);
 
-        expensesArray = expensesArray.filter(item => {
-          const date = new Date(item.date); 
-          return date >= startDate && date <= endDate
-        });
+        expensesArray = this.financialMonitoringStore.getExpensesByRangeDate(startDate, endDate);
       }
-      
+
       return expensesArray;
     },
-    isFavoriteNote: function (id) {
-      const groupedExpenses = this.expenses();
-      for (const group of groupedExpenses) {
-        const expensesNote = group.items.find(item => item.id == id);
-        if (expensesNote) {
-          expensesNote.isFavorite = !expensesNote.isFavorite;
+    initializeTabs: function (selectedDate) {
+      const uniqueDates = new Set();
+
+      this.financialMonitoringStore.expenses.forEach(expense => {
+        const formattedDate = this.formatDateForTab(expense.date);
+        uniqueDates.add(formattedDate);
+      });
+
+      const sortedDates = Array.from(uniqueDates).sort((a, b) => {
+        const [monthA, yearA] = a.split('/').map(Number);
+        const [monthB, yearB] = b.split('/').map(Number);
+        return new Date(yearA, monthA - 1) - new Date(yearB, monthB - 1);
+      });
+
+      const now = new Date();
+      const currentMonth = now.getMonth() + 1;
+      const currentYear = now.getFullYear();
+      
+      sortedDates.forEach(date => {
+        const [month, year] = date.split('/').map(Number);
+        let label = date;
+
+        if (year === currentYear && month === currentMonth) {
+          label = 'Текущий месяц';
+        } else 
+        if (year === currentYear && month === currentMonth - 1) {
+          label = 'Предыдущий месяц';
+        } else if (currentMonth === 1 && month === 12 && year === currentYear - 1) {
+          label = 'Предыдущий месяц';
         }
+
+        const existingTab = this.tabs.find(tab => tab.name === date);
+        if (!existingTab) {
+          this.tabs.push({ label: label, name: date });
+        }
+      });
+
+      const currentMonthTabName = `${currentMonth}/${currentYear}`;
+      if (!this.tabs.find(tab => tab.name === currentMonthTabName)) {
+        this.tabs.push({ label: 'Текущий месяц', name: currentMonthTabName });
       }
+
+      if (selectedDate) {
+        this.activeTab = this.formatDateForTab(selectedDate);
+      }
+    },
+    formatDateForTab: function (date) {
+      const selectedDate = new Date(date);
+      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+      const year = selectedDate.getFullYear();
+      return `${month}/${year}`;
+    },
+
+    isFavoriteExpense: function (id) {
+      for (let item of this.financialMonitoringStore.expenses) {
+
+      if (item.id == id) {
+        item.isFavorite = !item.isFavorite;
+        break;
+      }
+    }
     },
     deleteExpense: function (id) {
       ElMessageBox.confirm(
@@ -428,6 +477,7 @@ export default {
           message: 'Запись удалена',
         })
         this.financialMonitoringStore.deleteExpense(id);
+        this.removeEmptyTabs();
       })
       .catch(() => {
         ElMessage({
@@ -443,7 +493,10 @@ export default {
         typeSortExpenses: this.typeSortExpenses,
         typeFilterExpenses: this.typeFilterExpenses,
         typeGroupExpenses: this.typeGroupExpenses,
-        activeName: this.activeName,
+        activeTab: this.activeTab,
+        tabs: this.tabs,
+        selectedFilterCategory: this.selectedFilterCategory,
+        showDeleteButton: true,
       });
     },
     openInfoNote: function (id) {
@@ -452,25 +505,58 @@ export default {
         typeSortExpenses: this.typeSortExpenses,
         typeFilterExpenses: this.typeFilterExpenses,
         typeGroupExpenses: this.typeGroupExpenses,
-        activeName: this.activeName,
+        activeTab: this.activeTab,
+        tabs: this.tabs,
+        selectedFilterCategory: this.selectedFilterCategory,
       });
     },
-    formatDate: function (dateString) {
-      const [year, month, day] = dateString.split('/').map(Number);
-      const date = new Date(year, month - 1, day);
-      const dayOfWeek = daysOfWeekInRussian[date.getDay() === 0 ? 6 : date.getDay() - 1];
-
-      return `${day} ${monthsInRussian[month - 1]} ${year}, ${dayOfWeek}`;
-    },
-    onRangeOfAmountsSelected: function (amount) {
-      this.selectedFilterMinAmount = amount.minAmount;
-      this.selectedFilterMaxAmount = amount.maxAmount;
+    onRangeOfAmountsSelected: function ({ minAmount, maxAmount }) {
+      this.selectedFilterMinAmount = minAmount;
+      this.selectedFilterMaxAmount = maxAmount;
       this.isFilterByRangeOfAmountsVisible = false;
       this.applyRangeFilter = true;
     },
     onCategorySelected: function (category) {
       this.selectedFilterCategory = category.label;
       this.isCategoryListDialogVisible = false;
+    },
+    handleClose: function () {
+      this.isFilterByRangeOfAmountsVisible = false;
+      this.typeFilterExpenses = FilterType.NotSelected;
+    },
+    getExpenseWord: function (count) {
+      if (count === 1 || (count % 10 === 1 && count % 100 !== 11)) {
+        return 'расход';
+      } else if (count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 10 || count % 100 >= 20)) {
+        return 'расхода';
+      } else {
+        return 'расходов';
+      }
+    },
+    removeEmptyTabs: function () {
+      const currentActiveTab = this.activeTab;
+      const currentIndex = this.tabs.findIndex(tab => tab.name === currentActiveTab);
+      for (let i = this.tabs.length - 1; i >= 0; i--) {
+        const tab = this.tabs[i];
+
+        if (tab.name === 'custom' || tab.label === 'Текущий месяц') {
+          continue;
+        }
+
+        this.activeTab = tab.name;
+
+        const expensesForTab = this.filterExpensesByTabs();
+
+        if (expensesForTab.length === 0) {
+          this.tabs.splice(i, 1);
+        }
+      }
+
+      if (!this.tabs.some(tab => tab.name === currentActiveTab)) {
+        this.activeTab = this.tabs[currentIndex].name;
+      } else {
+        this.activeTab = currentActiveTab;
+      }
     },
   },
 };

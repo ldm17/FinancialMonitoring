@@ -23,7 +23,6 @@ export default {
   },
   data() {
     return {
-      // selectedCategory: '',
       defaultProps: {
         children: 'children',
         label: 'label',
@@ -32,11 +31,6 @@ export default {
   },
   methods: {
     handleNodeClick(data) {
-      // this.selectedCategory = data;
-      // this.financialMonitoringStore.setPage('addNote', {
-      //   title: 'Добавление раcхода',
-      // });
-
       const categoryLabel = this.financialMonitoringStore.getCategoryLabelById(data.id);
       this.$emit('category-selected', { id: data.id, label: categoryLabel });
     },

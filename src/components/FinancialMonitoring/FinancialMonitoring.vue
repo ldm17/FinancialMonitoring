@@ -43,8 +43,8 @@
             </div>
 
             <div v-if="financialMonitoringStore.currentPage === 'rangeFilter'">
-              <financial-monitoring-range-filter>
-              </financial-monitoring-range-filter>
+              <financial-monitoring-range-filter-modal>
+              </financial-monitoring-range-filter-modal>
             </div>
 
             <div v-if="financialMonitoringStore.currentPage === 'infoNote'">
@@ -64,7 +64,7 @@ import { useFinancialMonitoringStore } from '@/stores/FinancialMonitoringStore';
 import FinancialMonitoringExpenses from './FinancialMonitoringExpenses.vue';
 import FinancialMonitoringIncomes from './FinancialMonitoringIncomes.vue';
 import FinancialMonitoringAddNote from './FinancialMonitoringAddNote.vue';
-import FinancialMonitoringRangeFilter from './FinancialMonitoringRangeFilter.vue';
+import FinancialMonitoringRangeFilterModal from './FinancialMonitoringRangeFilterModal.vue';
 import FinancialMonitoringInfoNote from './FinancialMonitoringInfoNote.vue';
 
 export default {
@@ -73,7 +73,7 @@ export default {
     FinancialMonitoringExpenses,
     FinancialMonitoringIncomes,
     FinancialMonitoringAddNote,
-    FinancialMonitoringRangeFilter,
+    FinancialMonitoringRangeFilterModal,
     FinancialMonitoringInfoNote,
   },
   setup() {

@@ -13,25 +13,31 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     pageParams: {},
     expenses: [
       {
-        id: 2, idCategory: 2, amount: 30, category: 'Недвижимость', date: '2024/07/27', description: '', isIgnoredInCalculation: false, isFavorite: false,
+        id: 2, idCategory: 2, amount: 30, category: 'Рестораны', date: '2024/07/27 14:30', description: '', isIgnoredInCalculation: false, isFavorite: false,
       },
       {
-        id: 1, idCategory: 1, amount: 15, category: 'Продукты', date: '2024/07/25', description: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Voluptates ab deserunt, quia beatae molestias ratione natus repudiandae rem sunt nesciunt laborum maiores aliquam facere minus, impedit blanditiis quisquam atque dolor?', isIgnoredInCalculation: false, isFavorite: false,
+        id: 1, idCategory: 1, amount: 15, category: 'Питание', date: '2024/07/25 09:15', description: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Voluptates ab deserunt, quia beatae molestias ratione natus repudiandae rem sunt nesciunt laborum maiores aliquam facere minus, impedit blanditiis quisquam atque dolor?', isIgnoredInCalculation: false, isFavorite: false,
       },
       {
-        id: 3, idCategory: 1, amount: 10, category: 'Продукты', date: '2024/07/21', description: '', isIgnoredInCalculation: true, isFavorite: true,
+        id: 3, idCategory: 1, amount: 10, category: 'Транспорт', date: '2024/07/21 18:45', description: '', isIgnoredInCalculation: true, isFavorite: true,
       },
       {
-        id: 4, idCategory: 3, amount: 50, category: 'Транспорт', date: '2024/08/09', description: 'Lorem ipsum dolor sit amet consectetur adipisicing elit', isIgnoredInCalculation: false, isFavorite: false,
+        id: 4, idCategory: 3, amount: 50, category: 'Транспорт', date: '2024/08/09 11:00', description: 'Lorem ipsum dolor sit amet consectetur adipisicing elit', isIgnoredInCalculation: false, isFavorite: false,
       },
       {
-        id: 5, idCategory: 2, amount: 50, category: 'Недвижимость', date: '2024/08/09', description: '', isIgnoredInCalculation: false, isFavorite: false,
+        id: 5, idCategory: 2, amount: 50, category: 'Счет за воду', date: '2024/08/09 08:30', description: '', isIgnoredInCalculation: false, isFavorite: false,
       },
       {
-        id: 6, idCategory: 1, amount: 70, category: 'Продукты', date: '2024/08/07', description: '', isIgnoredInCalculation: false, isFavorite: false,
+        id: 6, idCategory: 1, amount: 70, category: 'Топливо', date: '2024/08/07 16:20', description: '', isIgnoredInCalculation: false, isFavorite: false,
       },
       {
-        id: 7, idCategory: 3, amount: 40, category: 'Транспорт', date: '2024/09/02', description: '', isIgnoredInCalculation: false, isFavorite: false,
+        id: 7, idCategory: 3, amount: 40, category: 'Топливо', date: '2024/09/02 19:10', description: '', isIgnoredInCalculation: false, isFavorite: false,
+      },
+      {
+        id: 8, idCategory: 2, amount: 37, category: 'Рестораны', date: '2024/07/26 12:05', description: '', isIgnoredInCalculation: false, isFavorite: false,
+      },
+      {
+        id: 9, idCategory: 2, amount: 37, category: 'Рестораны', date: '2024/10/01 13:05', description: '', isIgnoredInCalculation: false, isFavorite: false,
       },
     ],
     categories: [
@@ -261,7 +267,7 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
       notes.push(note);
     },
     deleteExpense(params: number) {
-      const indexNote = this.expenses.findIndex((item) => item.id === params);
+      const indexNote = this.expenses.findIndex((item: { id: number}) => item.id === params);
       this.expenses.splice(indexNote, 1);
     },
     getCategoryLabelById(params: number) {
@@ -280,6 +286,13 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
         return findCategory(categories.slice(1));
       };
       return findCategory(this.categories);
+    },
+    getExpensesByRangeDate(startDate: Date, endDate: Date) {
+      const expensesArray = this.expenses.filter((item: {date: string}) => {
+        const date = new Date(item.date);
+        return date >= startDate && date <= endDate;
+      });
+      return expensesArray;
     },
   },
 });

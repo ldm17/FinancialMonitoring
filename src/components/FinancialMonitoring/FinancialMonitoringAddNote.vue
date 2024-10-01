@@ -8,13 +8,8 @@
     </el-input>
 
     <p>Категория</p>
-    <!-- <el-select style="width: 250px" v-model="selectedCategory" placeholder="Выберите категорию">
-      <el-option v-for="item in financialMonitoringStore.categories" :key="item.category" :value="item.category" />
-    </el-select> -->
-
     <div class="picker-category">
       <el-autocomplete
-        :class="{ 'error-border': errorMessage }"
         v-model="selectedCategory"
         :fetch-suggestions="querySearch"
         :trigger-on-focus="false"
@@ -24,8 +19,7 @@
 
       <el-button @click="isCategoryListDialogVisible = true"><el-icon><ArrowRight /></el-icon></el-button>
     </div>
-
-    <div class="error-message" v-if="errorMessage">Выбранная категория не найдена. Пожалуйста, выберите другую категорию.</div>
+    <div class="error-message" v-if="isSubmitAttempted && errorMessage">Выбранная категория не найдена. Пожалуйста, выберите другую категорию</div>
 
     <el-dialog v-model="isCategoryListDialogVisible" title="Выберите категорию" width="500" center align-center>
       <span>
@@ -36,8 +30,7 @@
     </el-dialog>
 
     <p>Дата</p>
-    <el-date-picker style="width: 250px" v-model="datePicker" type="date" placeholder="Выберите дату" size="default" format="YYYY/MM/DD" value-format="YYYY/MM/DD" />
-    <!-- <el-date-picker style="width: 250px" v-model="datePicker" type="datetime" placeholder="Выберите дату" format="YYYY/MM/DD HH:mm" value-format="YYYY/MM/DD HH:mm" time-format="HH:mm" /> -->
+    <el-date-picker style="width: 250px" v-model="datePicker" type="datetime" placeholder="Выберите дату и время" format="YYYY/MM/DD HH:mm" value-format="YYYY/MM/DD HH:mm" time-format="HH:mm"/>
 
     <p v-if="isDescription">
       <el-input style="width: 250px" v-model="description" :autosize="{ minRows: 2, maxRows: 4 }" type="textarea" placeholder="Примечание" />
@@ -47,7 +40,7 @@
       <el-button @click="addDescription()"><el-icon><EditPen /></el-icon></el-button>
       <el-button><el-icon><PictureFilled /></el-icon></el-button>
       <el-button @click="editIsFavorite()"><el-icon><CollectionTag /></el-icon></el-button>
-      <el-button @click="deleteExpense(this.financialMonitoringStore.pageParams.id)"><el-icon><Delete /></el-icon></el-button>
+      <el-button v-if="financialMonitoringStore.pageParams.showDeleteButton" @click="deleteExpense(this.financialMonitoringStore.pageParams.id)"><el-icon><Delete /></el-icon></el-button>
     </p>
 
     <p>
@@ -65,7 +58,7 @@
     <div v-if="financialMonitoringStore.pageParams.title == 'Редактирование раcхода'">
       <p>
         <el-button @click="backToHome()">Назад</el-button>
-        <el-button type="primary" @click="editExpense(amount, selectedCategory, datePicker)" :disabled="checkFieldsAddExpense()">Сохранить</el-button>
+        <el-button type="primary" @click="editExpense()" :disabled="checkFieldsAddExpense()">Сохранить</el-button>
       </p>
     </div>
   </div>
@@ -95,11 +88,21 @@ export default {
       this.description = expense.description;
       this.isIgnoredInCalculation = expense.isIgnoredInCalculation;
       this.isFavorite = expense.isFavorite;
+    } else {
+      this.setCurrentDate();
     }
   },
   mounted() {
     this.categoryListForSuggestion = this.loadAllCategoryList();
   },
+  watch: {
+  selectedCategory(newValue) {
+    if (newValue.length === 0) {
+      this.errorMessage = false;
+      this.isSubmitAttempted = false;
+    }
+  }
+},
   data() {
     return {
       amount: null,
@@ -109,52 +112,59 @@ export default {
       description: '',
       isIgnoredInCalculation: false,
       isFavorite: false,
-      getActiveName: '',
       isCategoryListDialogVisible: false,
       categoryListForSuggestion: [],
       errorMessage: false,
+      isSubmitAttempted: false,
     };
   },
   methods: {
     backToHome: function () {
-      this.financialMonitoringStore.setPage('expenses', {
-        selectedActiveName: this.financialMonitoringStore.pageParams.activeName,
-      });
+      if (this.financialMonitoringStore.pageParams.returnToInfoNote) {
+        this.financialMonitoringStore.setPage('infoNote', {
+          id: this.financialMonitoringStore.pageParams.id,
+          typeSortExpenses: this.financialMonitoringStore.pageParams.typeSortExpenses,
+          typeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
+          typeGroupExpenses: this.financialMonitoringStore.pageParams.typeGroupExpenses,
+          activeTab: this.financialMonitoringStore.pageParams.activeTab,
+          tabs: this.financialMonitoringStore.pageParams.tabs,
+          selectedFilterCategory: this.financialMonitoringStore.pageParams.selectedFilterCategory,
+        });
+      } else {
+        this.financialMonitoringStore.setPage('expenses', {
+          selectedTypeSortExpenses: this.financialMonitoringStore.pageParams.typeSortExpenses,
+          selectedTypeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
+          selectedTypeGroupExpenses: this.financialMonitoringStore.pageParams.typeGroupExpenses,
+          selectedActiveTab: this.financialMonitoringStore.pageParams.activeTab,
+          currentTabs: this.financialMonitoringStore.pageParams.tabs,
+          selectedFilterCategory: this.financialMonitoringStore.pageParams.selectedFilterCategory,
+        });
+      }
     },
     addExpense: function (amount, selectedCategory, datePicker) {
-    // const expense = this.financialMonitoringStore.categories.find(item => item.label == selectedCategory);
+    this.isSubmitAttempted = true;
 
     const allCategories = this.loadAllCategoryList();
-    const expense = allCategories.find(item => item.value === selectedCategory);
+    const isValidCategory = allCategories.find(item => item.value.toLowerCase() === selectedCategory.toLowerCase());
 
-    if (expense) {
+    if (isValidCategory) {
+      const formattedCategory = selectedCategory[0].toUpperCase() + selectedCategory.slice(1);
+
       this.financialMonitoringStore.addNote({
         id: this.financialMonitoringStore.expenses.length + 1,
-        idCategory: expense.id,
+        idCategory: isValidCategory.id,
         amount: parseFloat(amount),
-        category: selectedCategory,
+        category: formattedCategory,
         date: datePicker,
         description: this.description,
         isIgnoredInCalculation: this.isIgnoredInCalculation,
         isFavorite: this.isFavorite,
       });
 
-      const date = new Date(datePicker);
-      const today = new Date();
-
-      if (date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth()) {
-        this.getActiveName = 'fifth';
-      } else if (date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() - 1) {
-        this.getActiveName = 'fourth';
-      } else if (date >= new Date(today.getFullYear(), today.getMonth() - 5, 1) && date <= today) {
-        this.getActiveName = 'third';
-      } else if (date.getFullYear() === today.getFullYear()) {
-        this.getActiveName = 'second';
-      }
-
-      this.financialMonitoringStore.setPage('expenses', {
-        getActiveName: this.getActiveName,
-        });
+    this.financialMonitoringStore.setPage('expenses', {
+      selectedDate: datePicker,
+      currentTabs: this.financialMonitoringStore.pageParams.tabs,
+      });
 
       this.errorMessage = false;
       } else {
@@ -165,22 +175,35 @@ export default {
       return this.financialMonitoringStore.expenses.find((item) => item.id == id);
     },
     editExpense: function () {
+      this.isSubmitAttempted = true;
       let expense = this.getExpense(this.financialMonitoringStore.pageParams.id);
 
-      if (expense) {
-        expense.amount = this.amount;
-        expense.category = this.selectedCategory;
+      const allCategories = this.loadAllCategoryList();
+      const isValidCategory = allCategories.find(item => item.value.toLowerCase() === this.selectedCategory.toLowerCase());
+
+      if (isValidCategory) {
+        const formattedCategory = this.selectedCategory[0].toUpperCase() + this.selectedCategory.slice(1);
+
+        expense.amount = parseFloat(this.amount);
+        expense.category = formattedCategory;
         expense.date = this.datePicker;
         expense.description = this.description;
         expense.isIgnoredInCalculation = this.isIgnoredInCalculation;
         expense.isFavorite = this.isFavorite;
-      }
-      this.financialMonitoringStore.setPage('expenses', {
+
+        this.financialMonitoringStore.setPage('expenses', {
         selectedTypeSortExpenses: this.financialMonitoringStore.pageParams.typeSortExpenses,
         selectedTypeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
         selectedTypeGroupExpenses: this.financialMonitoringStore.pageParams.typeGroupExpenses,
-        selectedActiveName: this.financialMonitoringStore.pageParams.activeName,
+        selectedActiveTab: this.financialMonitoringStore.pageParams.activeTab,
+        currentTabs: this.financialMonitoringStore.pageParams.tabs,
+        selectedFilterCategory: this.financialMonitoringStore.pageParams.selectedFilterCategory,
       })
+
+        this.errorMessage = false;
+      } else {
+        this.errorMessage = true;
+      }
     },
     checkFieldsAddExpense: function () {
       return this.selectedCategory == 0 || this.amount == 0 || this.datePicker == 0 ? true : false;
@@ -209,7 +232,15 @@ export default {
           message: 'Запись удалена',
         })
         this.financialMonitoringStore.deleteExpense(id);
-        this.financialMonitoringStore.setPage('expenses');
+        this.financialMonitoringStore.setPage('expenses', {
+          selectedTypeSortExpenses: this.financialMonitoringStore.pageParams.typeSortExpenses,
+          selectedTypeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
+          selectedTypeGroupExpenses: this.financialMonitoringStore.pageParams.typeGroupExpenses,
+          selectedActiveTab: this.financialMonitoringStore.pageParams.activeTab,
+          currentTabs: this.financialMonitoringStore.pageParams.tabs,
+          selectedFilterCategory: this.financialMonitoringStore.pageParams.selectedFilterCategory,
+          removeEmptyTabs: true,
+        });
       })
       .catch(() => {
         ElMessage({
@@ -240,6 +271,7 @@ export default {
         categories.forEach(category => {
           result.push({
             value: store.getCategoryLabelById(category.id),
+            id: category.id,
           });
 
           if (category.children && category.children.length > 0) {
@@ -248,8 +280,18 @@ export default {
         });
         return result;
       };
-      
+
       return extractCategories(categories);
+    },
+    setCurrentDate: function () {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      const hours = String(today.getHours()).padStart(2, '0');
+      const minutes = String(today.getMinutes()).padStart(2, '0');
+
+      this.datePicker = `${year}/${month}/${day} ${hours}:${minutes}`;
     },
   },
 };
@@ -270,11 +312,6 @@ export default {
   .el-button {
     width: 32px;
   }
-}
-
-.error-border {
-  border: 1px solid red;
-  border-radius: 5px;
 }
 
 .error-message {

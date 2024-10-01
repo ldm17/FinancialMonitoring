@@ -2,7 +2,6 @@
   <el-config-provider :locale="locale">
     <financialMonitoring />
   </el-config-provider>
-  <!-- <test></test> -->
 </template>
 
 <script>
@@ -21,7 +20,6 @@ export default {
   data() {
     return {
       locale: ru,
-      // firstDayOfWeek: 1,
     };
   },
   methods: {},
