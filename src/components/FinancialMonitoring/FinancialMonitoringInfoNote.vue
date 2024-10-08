@@ -15,8 +15,9 @@
                 typeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
                 typeGroupExpenses: this.financialMonitoringStore.pageParams.typeGroupExpenses,
                 activeTab: this.financialMonitoringStore.pageParams.activeTab,
-                tabs: this.financialMonitoringStore.pageParams.tabs,
+                // tabs: this.financialMonitoringStore.pageParams.tabs,
                 selectedFilterCategory: this.financialMonitoringStore.pageParams.selectedFilterCategory,
+                showDeleteButton: true,
               })"
                 size="small">
                 <el-icon><Edit /></el-icon>
@@ -71,7 +72,7 @@ export default {
         selectedTypeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
         selectedTypeGroupExpenses: this.financialMonitoringStore.pageParams.typeGroupExpenses,
         selectedActiveTab: this.financialMonitoringStore.pageParams.activeTab,
-        currentTabs: this.financialMonitoringStore.pageParams.tabs,
+        // currentTabs: this.financialMonitoringStore.pageParams.tabs,
         selectedFilterCategory: this.financialMonitoringStore.pageParams.selectedFilterCategory,
         } 
       );
@@ -99,7 +100,7 @@ export default {
           selectedTypeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
           selectedTypeGroupExpenses: this.financialMonitoringStore.pageParams.typeGroupExpenses,
           selectedActiveTab: this.financialMonitoringStore.pageParams.activeTab,
-          currentTabs: this.financialMonitoringStore.pageParams.tabs,
+          // currentTabs: this.financialMonitoringStore.pageParams.tabs,
           selectedFilterCategory: this.financialMonitoringStore.pageParams.selectedFilterCategory,
         });
       })

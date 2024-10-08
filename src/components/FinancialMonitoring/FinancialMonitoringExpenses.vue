@@ -145,9 +145,10 @@
 <script>
 import { useFinancialMonitoringStore } from "@/stores/FinancialMonitoringStore";
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { format, parse } from "date-fns";
 import FinancialMonitoringRangeFilterModal from "./FinancialMonitoringRangeFilterModal.vue";
 import FinancialMonitoringCategoryList from "./FinancialMonitoringCategoryList.vue";
-import formatDate from "../../stores/utils.js";
+import { formatDate, formatDateForTab } from "@/utils.js";
 
 const SortType = {
   ByDateNew: 0,
@@ -169,31 +170,6 @@ const GroupType = {
   ByCategories: 1,
 };
 
-const Months = {
-  January: 0,
-  February: 1,
-  March: 2,
-  April: 3,
-  May: 4,
-  June: 5,
-  July: 6,
-  August: 7,
-  September: 8,
-  October: 9,
-  November: 10,
-  December: 11
-};
-
-const DaysOfWeek = {
-  Monday: 0,
-  Tuesday: 1,
-  Wednesday: 2,
-  Thursday: 3,
-  Friday: 4,
-  Saturday: 5,
-  Sunday: 6
-};
-
 export default {
   name: "financial-monitoring-expenses",
   components: {
@@ -205,12 +181,21 @@ export default {
     return { financialMonitoringStore };
   },
   created() {
+    const pageParams = this.financialMonitoringStore.pageParams;
+
     this.initializeTabs()
 
-    if (this.financialMonitoringStore.pageParams.selectedDate) {
-      this.initializeTabs(this.financialMonitoringStore.pageParams.selectedDate);
-    } else if (this.financialMonitoringStore.pageParams.selectedActiveTab) {
-      this.activeTab = this.financialMonitoringStore.pageParams.selectedActiveTab;
+    if (pageParams.selectedDate) {
+      this.activeTab = formatDateForTab(pageParams.selectedDate);
+    } else if (pageParams.selectedActiveTab) {
+      const currentTab = this.tabs.find(tab => tab.name === pageParams.selectedActiveTab);
+        
+      if (currentTab) {
+        this.activeTab = pageParams.selectedActiveTab;
+      } else {
+        const lastTab = this.tabs[this.tabs.length - 1];
+        this.activeTab = lastTab.name;
+      }
     } else {
       const lastTab = this.tabs[this.tabs.length - 1];
       this.activeTab = lastTab.name;
@@ -236,9 +221,9 @@ export default {
       this.selectedFilterCategory = this.financialMonitoringStore.pageParams.selectedFilterCategory;
     }
 
-    if (this.financialMonitoringStore.pageParams.removeEmptyTabs) {
-      this.removeEmptyTabs();
-    }
+    // if (this.financialMonitoringStore.pageParams.removeEmptyTabs) {
+    //   this.removeEmptyTabs();
+    // }
   },
   computed: {
     formattedDate() {
@@ -380,7 +365,7 @@ export default {
       return expensesArray;
     },
     filterExpensesByTabs: function () {
-      let expensesArray = this.financialMonitoringStore.expenses;
+      let expensesArray = [];
 
       if (this.activeTab.match(/^\d{2}\/\d{4}$/)) {
         const [month, year] = this.activeTab.split('/').map(Number);
@@ -397,11 +382,14 @@ export default {
 
       return expensesArray;
     },
-    initializeTabs: function (selectedDate) {
+    initializeTabs: function () {
       const uniqueDates = new Set();
 
+      const currentDate = format(new Date(), "yyyy/MM/dd");
+      uniqueDates.add(formatDateForTab(currentDate));
+
       this.financialMonitoringStore.expenses.forEach(expense => {
-        const formattedDate = this.formatDateForTab(expense.date);
+        const formattedDate = formatDateForTab(expense.date);
         uniqueDates.add(formattedDate);
       });
 
@@ -421,8 +409,7 @@ export default {
 
         if (year === currentYear && month === currentMonth) {
           label = 'Текущий месяц';
-        } else 
-        if (year === currentYear && month === currentMonth - 1) {
+        } else if (year === currentYear && month === currentMonth - 1) {
           label = 'Предыдущий месяц';
         } else if (currentMonth === 1 && month === 12 && year === currentYear - 1) {
           label = 'Предыдущий месяц';
@@ -433,31 +420,14 @@ export default {
           this.tabs.push({ label: label, name: date });
         }
       });
-
-      const currentMonthTabName = `${currentMonth}/${currentYear}`;
-      if (!this.tabs.find(tab => tab.name === currentMonthTabName)) {
-        this.tabs.push({ label: 'Текущий месяц', name: currentMonthTabName });
-      }
-
-      if (selectedDate) {
-        this.activeTab = this.formatDateForTab(selectedDate);
-      }
     },
-    formatDateForTab: function (date) {
-      const selectedDate = new Date(date);
-      const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
-      const year = selectedDate.getFullYear();
-      return `${month}/${year}`;
-    },
-
     isFavoriteExpense: function (id) {
       for (let item of this.financialMonitoringStore.expenses) {
-
-      if (item.id == id) {
-        item.isFavorite = !item.isFavorite;
-        break;
+        if (item.id == id) {
+          item.isFavorite = !item.isFavorite;
+          break;
+        }
       }
-    }
     },
     deleteExpense: function (id) {
       ElMessageBox.confirm(
