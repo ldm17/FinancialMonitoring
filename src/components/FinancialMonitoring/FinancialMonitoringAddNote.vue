@@ -127,7 +127,6 @@ export default {
           typeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
           typeGroupExpenses: this.financialMonitoringStore.pageParams.typeGroupExpenses,
           activeTab: this.financialMonitoringStore.pageParams.activeTab,
-          // tabs: this.financialMonitoringStore.pageParams.tabs,
           selectedFilterCategory: this.financialMonitoringStore.pageParams.selectedFilterCategory,
         });
       } else {
@@ -136,7 +135,6 @@ export default {
           selectedTypeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
           selectedTypeGroupExpenses: this.financialMonitoringStore.pageParams.typeGroupExpenses,
           selectedActiveTab: this.financialMonitoringStore.pageParams.activeTab,
-          // currentTabs: this.financialMonitoringStore.pageParams.tabs,
           selectedFilterCategory: this.financialMonitoringStore.pageParams.selectedFilterCategory,
         });
       }
@@ -163,7 +161,6 @@ export default {
 
     this.financialMonitoringStore.setPage('expenses', {
       selectedDate: datePicker,
-      // currentTabs: this.financialMonitoringStore.pageParams.tabs,
       });
 
       this.errorMessage = false;
@@ -196,7 +193,6 @@ export default {
         selectedTypeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
         selectedTypeGroupExpenses: this.financialMonitoringStore.pageParams.typeGroupExpenses,
         selectedActiveTab: this.financialMonitoringStore.pageParams.activeTab,
-        // currentTabs: this.financialMonitoringStore.pageParams.tabs,
         selectedFilterCategory: this.financialMonitoringStore.pageParams.selectedFilterCategory,
       })
 
@@ -237,8 +233,8 @@ export default {
           selectedTypeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
           selectedTypeGroupExpenses: this.financialMonitoringStore.pageParams.typeGroupExpenses,
           selectedActiveTab: this.financialMonitoringStore.pageParams.activeTab,
-          // currentTabs: this.financialMonitoringStore.pageParams.tabs,
           selectedFilterCategory: this.financialMonitoringStore.pageParams.selectedFilterCategory,
+          selectedPreviousActiveTabIndex: this.financialMonitoringStore.pageParams.previousActiveTabIndex,
         });
       })
       .catch(() => {

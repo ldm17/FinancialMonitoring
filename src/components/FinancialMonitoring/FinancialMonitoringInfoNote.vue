@@ -15,9 +15,9 @@
                 typeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
                 typeGroupExpenses: this.financialMonitoringStore.pageParams.typeGroupExpenses,
                 activeTab: this.financialMonitoringStore.pageParams.activeTab,
-                // tabs: this.financialMonitoringStore.pageParams.tabs,
                 selectedFilterCategory: this.financialMonitoringStore.pageParams.selectedFilterCategory,
                 showDeleteButton: true,
+                previousActiveTabIndex: this.financialMonitoringStore.pageParams.previousActiveTabIndex,
               })"
                 size="small">
                 <el-icon><Edit /></el-icon>
@@ -72,7 +72,6 @@ export default {
         selectedTypeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
         selectedTypeGroupExpenses: this.financialMonitoringStore.pageParams.typeGroupExpenses,
         selectedActiveTab: this.financialMonitoringStore.pageParams.activeTab,
-        // currentTabs: this.financialMonitoringStore.pageParams.tabs,
         selectedFilterCategory: this.financialMonitoringStore.pageParams.selectedFilterCategory,
         } 
       );
@@ -100,8 +99,8 @@ export default {
           selectedTypeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
           selectedTypeGroupExpenses: this.financialMonitoringStore.pageParams.typeGroupExpenses,
           selectedActiveTab: this.financialMonitoringStore.pageParams.activeTab,
-          // currentTabs: this.financialMonitoringStore.pageParams.tabs,
           selectedFilterCategory: this.financialMonitoringStore.pageParams.selectedFilterCategory,
+          selectedPreviousActiveTabIndex: this.financialMonitoringStore.pageParams.previousActiveTabIndex,
         });
       })
       .catch(() => {

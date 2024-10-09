@@ -81,74 +81,31 @@
 
     <div v-else>
       <p style="color: red; text-align: right">{{ getSumExpenses() }}</p>
-      <div class="expenses__card">
-        <el-card style="margin-bottom: 15px;" v-for="group in expenses()" :key="group.id">
-            <el-row :gutter="20">
-              <el-col :span="12">
-                {{ typeGroupExpenses == GroupType.ByDate ? formatDate(group.date) : group.category }}
-              </el-col>
-              <el-col :span="12" style="text-align: right">
-                <span style="color: red">-{{ group.items.reduce((sum, item) => sum + item.amount, 0) }}</span>
-              </el-col>
-            </el-row>
-
-            <el-row>
-              <el-col :span="24">
-                <div v-if="typeGroupExpenses == GroupType.ByCategories">
-                  <span>{{ group.items.length }} {{ getExpenseWord(group.items.length) }}</span>
-                  <el-divider style="margin: 5px 0px" />
-                </div>
-              </el-col>
-            </el-row>
-
-            <div class="visible-actions-note" @click="openInfoNote(item.id)" v-for="(item, index) in group.items" :key="item.id">
-              <el-row :gutter="20" style="margin-top: 15px;">
-                <el-col :span="12">
-                  <div>
-                    {{ typeGroupExpenses == GroupType.ByDate ? item.category : formatDate(item.date)}}
-                  </div>
-                  <span>{{ item.date.split(' ')[1] }}</span>
-                </el-col>
-                <el-col style="text-align: right;" :span="12">
-                  <span v-if="item.isFavorite">
-                    <el-icon size="small"><CollectionTag /></el-icon>
-                  </span>
-                  <span v-if="item.isIgnoredInCalculation">
-                    <el-icon size="small"><Hide /></el-icon>
-                  </span>
-                  <span style="color: red;">-{{ item.amount }}</span>
-                </el-col>
-              </el-row>
-
-              <el-row :gutter="20" style="margin-top: 0px;">
-                <el-col v-if="item.description" :span="24">
-                  <p class="description-card" style="margin: 5px 0px;">{{ item.description }}</p>
-                </el-col>
-              </el-row>
-                <el-row :gutter="20">
-                  <el-col :span="24" style="text-align: right;">
-                    <el-button @click.stop="isFavoriteExpense(item.id)" size="small"><el-icon><CollectionTag /></el-icon></el-button>
-                    <el-button @click.stop="openEditNote(item.id)" size="small"><el-icon><Edit /></el-icon></el-button>
-                    <el-button @click.stop="deleteExpense(item.id)" size="small"><el-icon><Delete /></el-icon></el-button>
-                  </el-col>
-              </el-row>
-
-              <el-divider style="margin: 5px 0px" v-if="index < group.items.length - 1" />
-            </div>
-        </el-card>
-      </div>
+      <financial-monitoring-card
+        v-for="group in expenses()"
+        :key="group.id"
+        :group="group"
+        :typeGroupExpenses="typeGroupExpenses"
+        :formatDate="formatDate"
+        :getExpenseWord="getExpenseWord"
+        :GroupType="GroupType"
+        @openInfoNote="openInfoNote"
+        @favorite="isFavoriteExpense"
+        @edit="openEditNote"
+        @delete="deleteExpense"
+      />
     </div>
-  </div >
+  </div>
   </div>
 </template>
 
 <script>
 import { useFinancialMonitoringStore } from "@/stores/FinancialMonitoringStore";
-import { ElMessage, ElMessageBox } from 'element-plus';
 import { format, parse } from "date-fns";
 import FinancialMonitoringRangeFilterModal from "./FinancialMonitoringRangeFilterModal.vue";
 import FinancialMonitoringCategoryList from "./FinancialMonitoringCategoryList.vue";
 import { formatDate, formatDateForTab } from "@/utils.js";
+import FinancialMonitoringCard from "./FinancialMonitoringCard.vue";
 
 const SortType = {
   ByDateNew: 0,
@@ -175,6 +132,7 @@ export default {
   components: {
     FinancialMonitoringRangeFilterModal,
     FinancialMonitoringCategoryList,
+    FinancialMonitoringCard,
   },
   setup() {
     const financialMonitoringStore = useFinancialMonitoringStore();
@@ -193,8 +151,10 @@ export default {
       if (currentTab) {
         this.activeTab = pageParams.selectedActiveTab;
       } else {
-        const lastTab = this.tabs[this.tabs.length - 1];
-        this.activeTab = lastTab.name;
+        if (this.financialMonitoringStore.pageParams.selectedPreviousActiveTabIndex) {
+          this.previousActiveTabIndex = this.financialMonitoringStore.pageParams.selectedPreviousActiveTabIndex;
+        }
+        this.removeEmptyTabs();
       }
     } else {
       const lastTab = this.tabs[this.tabs.length - 1];
@@ -220,10 +180,6 @@ export default {
     if (this.financialMonitoringStore.pageParams.selectedFilterCategory) {
       this.selectedFilterCategory = this.financialMonitoringStore.pageParams.selectedFilterCategory;
     }
-
-    // if (this.financialMonitoringStore.pageParams.removeEmptyTabs) {
-    //   this.removeEmptyTabs();
-    // }
   },
   computed: {
     formattedDate() {
@@ -240,6 +196,7 @@ export default {
       typeGroupExpenses: GroupType.ByDate,
       selectedFilterDatePicker: '',
       activeTab: '',
+      previousActiveTabIndex: -1,
       tabs: [
         { label: 'Пользовательский', name: 'custom' },
       ],
@@ -430,33 +387,12 @@ export default {
       }
     },
     deleteExpense: function (id) {
-      ElMessageBox.confirm(
-        'Удалить запись ?',
-        'Подтвердите действие',
-        {
-          confirmButtonText: 'Удалить',
-          cancelButtonText: 'Отменить',
-          type: 'warning',
-          center: true,
-          draggable: true,
-        }
-      )
-      .then(() => {
-        ElMessage({
-          type: 'success',
-          message: 'Запись удалена',
-        })
-        this.financialMonitoringStore.deleteExpense(id);
-        this.removeEmptyTabs();
-      })
-      .catch(() => {
-        ElMessage({
-          type: 'info',
-          message: 'Удаление отменено',
-        })
-      })
+      this.financialMonitoringStore.deleteExpense(id);
+      this.removeEmptyTabs();
     },
     openEditNote: function (id) {
+      this.previousActiveTabIndex = this.tabs.findIndex(tab => tab.name === this.activeTab);
+
       this.financialMonitoringStore.setPage('addNote', {
         title: 'Редактирование раcхода',
         id: id,
@@ -467,9 +403,12 @@ export default {
         tabs: this.tabs,
         selectedFilterCategory: this.selectedFilterCategory,
         showDeleteButton: true,
+        previousActiveTabIndex: this.previousActiveTabIndex,
       });
     },
     openInfoNote: function (id) {
+      this.previousActiveTabIndex = this.tabs.findIndex(tab => tab.name === this.activeTab);
+
       this.financialMonitoringStore.setPage('infoNote', {
         id: id,
         typeSortExpenses: this.typeSortExpenses,
@@ -478,6 +417,7 @@ export default {
         activeTab: this.activeTab,
         tabs: this.tabs,
         selectedFilterCategory: this.selectedFilterCategory,
+        previousActiveTabIndex: this.previousActiveTabIndex,
       });
     },
     onRangeOfAmountsSelected: function ({ minAmount, maxAmount }) {
@@ -506,6 +446,7 @@ export default {
     removeEmptyTabs: function () {
       const currentActiveTab = this.activeTab;
       const currentIndex = this.tabs.findIndex(tab => tab.name === currentActiveTab);
+
       for (let i = this.tabs.length - 1; i >= 0; i--) {
         const tab = this.tabs[i];
 
@@ -522,7 +463,9 @@ export default {
         }
       }
 
-      if (!this.tabs.some(tab => tab.name === currentActiveTab)) {
+      if (currentIndex === -1) {
+        this.activeTab = this.tabs[this.previousActiveTabIndex].name;
+      } else if (!this.tabs.some(tab => tab.name === currentActiveTab)) {
         this.activeTab = this.tabs[currentIndex].name;
       } else {
         this.activeTab = currentActiveTab;
@@ -554,29 +497,4 @@ export default {
   justify-content: center;
   flex-direction: column;
 }
-
-.visible-actions-note .el-button {
-  visibility: hidden;
-}
-
-.visible-actions-note:hover .el-button {
-  visibility: visible;
-}
-
-.expenses__card .el-card {
-  width: 415px;
-  max-width: 415px;
-  max-height: 135px auto;
-}
-
-.description-card {
-  color: grey;
-  width: 350px;
-  max-width: 100%;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  display: block;
-}
 </style>
-
