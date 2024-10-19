@@ -5,7 +5,6 @@
 </template>
 
 <script>
-import styles from './main.scss';
 import FinancialMonitoring from './components/FinancialMonitoring/FinancialMonitoring.vue';
 
 import { ElConfigProvider } from 'element-plus';
