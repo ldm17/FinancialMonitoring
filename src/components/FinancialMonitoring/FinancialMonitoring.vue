@@ -4,15 +4,19 @@
       <el-backtop :right="100" :bottom="100" />
       <el-aside width="250px">
         <h1 style="margin-left: 25px;">Financial</h1>
-        <el-menu default-active="1">
+        <el-menu default-active="1" @select="handleMenuSelect">
           <el-menu-item-group>
-            <el-menu-item index="1" @click="financialMonitoringStore.setPage('expenses')">
-              <el-icon><ShoppingCart /></el-icon>
-              <span>Расходы</span>
+            <el-menu-item index="1">
+              <router-link :to="{ name: 'expenses' }" class="router-link-aside">
+                <el-icon><ShoppingCart /></el-icon>
+                <span>Расходы</span>
+              </router-link>
             </el-menu-item>
-            <el-menu-item index="2" @click="financialMonitoringStore.setPage('incomes')">
-              <el-icon><Coin /></el-icon>
-              <span>Доходы</span>
+            <el-menu-item index="2">
+              <router-link :to="{ name: 'incomes' }" class="router-link-aside">
+                <el-icon><Coin /></el-icon>
+                <span>Доходы</span>
+              </router-link>
             </el-menu-item>
           </el-menu-item-group>
         </el-menu>
@@ -27,18 +31,17 @@
 
         <el-main>
           <el-scrollbar>
-            <div class="toolbar" v-if="financialMonitoringStore.currentPage === 'expenses'">
+            <!-- <div class="toolbar" v-if="financialMonitoringStore.currentPage === 'expenses'">
               <financial-monitoring-expenses>
               </financial-monitoring-expenses>
+            </div> -->
+            <div v-if="financialMonitoringStore.currentPage == 'expenses'">
+              <RouterView/>
             </div>
-
-            <div v-if="financialMonitoringStore.currentPage === 'incomes'">
-              <financial-monitoring-incomes>
-              </financial-monitoring-incomes>
-            </div>
-
+            
             <div v-if="financialMonitoringStore.currentPage === 'addNote'">
-              <financial-monitoring-add-note>
+              <financial-monitoring-add-note
+              :currentMenuItem="currentMenuItem">
               </financial-monitoring-add-note>
             </div>
 
@@ -48,7 +51,8 @@
             </div>
 
             <div v-if="financialMonitoringStore.currentPage === 'infoNote'">
-              <financial-monitoring-info-note>
+              <financial-monitoring-info-note
+              :currentMenuItem="currentMenuItem">
               </financial-monitoring-info-note>
             </div>
           </el-scrollbar>
@@ -62,16 +66,15 @@
 import * as Icons from '@element-plus/icons-vue';
 import { useFinancialMonitoringStore } from '@/stores/FinancialMonitoringStore';
 import FinancialMonitoringExpenses from './FinancialMonitoringExpenses.vue';
-import FinancialMonitoringIncomes from './FinancialMonitoringIncomes.vue';
 import FinancialMonitoringAddNote from './FinancialMonitoringAddNote.vue';
 import FinancialMonitoringRangeFilterModal from './FinancialMonitoringRangeFilterModal.vue';
 import FinancialMonitoringInfoNote from './FinancialMonitoringInfoNote.vue';
+import { OperationType } from '@/stores/FinancialMonitoringStore';
 
 export default {
   name: "financial-monitoring",
   components: {
     FinancialMonitoringExpenses,
-    FinancialMonitoringIncomes,
     FinancialMonitoringAddNote,
     FinancialMonitoringRangeFilterModal,
     FinancialMonitoringInfoNote,
@@ -83,13 +86,17 @@ export default {
   data() {
     return {
       Icons,
+      currentMenuItem: OperationType.Expenses,
     };
   },
   methods: {
     openAddExpense: function () {
       this.financialMonitoringStore.setPage('addNote', {
-        title: 'Добавление раcхода'
+        title: 'Добавление операции',
       });
+    },
+    handleMenuSelect: function (index) {
+      this.currentMenuItem = index === '1' ? OperationType.Expenses : OperationType.Incomes;
     },
   },
 };

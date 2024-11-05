@@ -1,5 +1,10 @@
 import { defineStore } from 'pinia';
 
+export const OperationType = {
+  Expenses: 0,
+  Incomes: 1,
+};
+
 type Category = {
   id: number;
   label: string;
@@ -38,6 +43,17 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
       },
       {
         id: 9, idCategory: 2, amount: 37, category: 'Рестораны', date: '2024/10/01 13:05', description: '', isIgnoredInCalculation: false, isFavorite: false,
+      },
+    ],
+    incomes: [
+      {
+        id: 1, idCategory: 1, amount: 155, category: 'Зарплата', date: '2024/10/15 20:30', description: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Voluptates ab deserunt, quia beatae molestias ratione natus repudiandae rem sunt nesciunt laborum maiores aliquam facere minus, impedit blanditiis quisquam atque dolor?', isIgnoredInCalculation: false, isFavorite: false,
+      },
+      {
+        id: 2, idCategory: 1, amount: 300, category: 'Зарплата', date: '2024/10/15 23:10', description: '', isIgnoredInCalculation: false, isFavorite: false,
+      },
+      {
+        id: 3, idCategory: 1, amount: 230, category: 'Зарплата', date: '2024/09/20 05:10', description: '', isIgnoredInCalculation: false, isFavorite: false,
       },
     ],
     categories: [
@@ -248,29 +264,57 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
         label: 'Исходящий перевод',
       },
     ] as Category[],
+    categoriesIncomes: [
+      {
+        id: 55,
+        label: 'Зарплата',
+      },
+      {
+        id: 56,
+        label: 'Премия',
+      },
+      {
+        id: 57,
+        label: 'Проценты',
+      },
+      {
+        id: 58,
+        label: 'Подарки',
+      },
+      {
+        id: 59,
+        label: 'Прочие поступления',
+      },
+    ] as Category[],
   }),
   actions: {
-    setPage(page: string, params = {}) {
+    setPage(page: string, params: object) {
       this.currentPage = page;
       this.currentPageTitle = page;
       this.pageParams = params;
     },
-
     setPageTitle(title: string) {
       this.currentPageTitle = title;
     },
     setPageParams(params: number) {
       this.pageParams = params;
     },
-    addNote(note = {}) {
-      const notes: object[] = this.expenses;
+    // eslint-disable-next-line default-param-last
+    addNote(note = {}, typeOperation: number) {
+      const notesArray = typeOperation === OperationType.Expenses ? this.expenses : this.incomes;
+
+      const notes: object[] = notesArray;
       notes.push(note);
     },
-    deleteExpense(params: number) {
-      const indexNote = this.expenses.findIndex((item: { id: number}) => item.id === params);
-      this.expenses.splice(indexNote, 1);
+    deleteExpense(params: number, typeOperation: number) {
+      const notesArray = typeOperation === OperationType.Expenses ? this.expenses : this.incomes;
+
+      const indexNote = notesArray.findIndex((item: { id: number}) => item.id === params);
+      notesArray.splice(indexNote, 1);
     },
-    getCategoryLabelById(params: number) {
+    getCategoryLabelById(params: number, typeOperation: number) {
+      const categoriesToUse = typeOperation === OperationType.Expenses ? this.categories : this.categoriesIncomes;
+
       const findCategory = (categories: Category[]): string | null => {
         if (categories.length === 0) return null;
         const category = categories[0];
@@ -285,14 +329,15 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
         }
         return findCategory(categories.slice(1));
       };
-      return findCategory(this.categories);
+      return findCategory(categoriesToUse);
     },
-    getExpensesByRangeDate(startDate: Date, endDate: Date) {
-      const expensesArray = this.expenses.filter((item: {date: string}) => {
+    getItemsByRangeDate(typeOperation: number, startDate: Date, endDate: Date) {
+      const notesArray = typeOperation === OperationType.Expenses ? this.expenses : this.incomes;
+      const itemsArray = notesArray.filter((item: {date: string}) => {
         const date = new Date(item.date);
         return date >= startDate && date <= endDate;
       });
-      return expensesArray;
+      return itemsArray;
     },
   },
 });

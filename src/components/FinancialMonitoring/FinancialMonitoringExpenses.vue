@@ -8,8 +8,14 @@
         </template>
         <el-option :value="SortType.ByDateNew" label="По дате добавления (новые)"></el-option>
         <el-option :value="SortType.ByDateOld" label="По дате добавления (старые)"></el-option>
-        <el-option :value="SortType.ByHighestExpenses" label="По наибольшим расходам"></el-option>
-        <el-option :value="SortType.ByLowestExpenses" label="По наименьшим расходам"></el-option>
+        <div v-if="this.typeOperation === OperationType.Expenses">
+          <el-option :value="SortType.ByHighest" label="По наибольшим расходам"></el-option>
+          <el-option :value="SortType.ByLowest" label="По наименьшим расходам"></el-option>
+        </div>
+        <div v-if="this.typeOperation === OperationType.Incomes">
+          <el-option :value="SortType.ByHighest" label="По наибольшим доходам"></el-option>
+          <el-option :value="SortType.ByLowest" label="По наименьшим доходам"></el-option>
+        </div>
       </el-select>
 
       <el-select v-model="typeFilterExpenses" style="width: 200px; margin-right: 15px" :disabled="!filterExpensesByTabs().length" @change="checkTypeFilterExpenses()">
@@ -19,13 +25,20 @@
         <el-option :value="FilterType.NotSelected" label="Не выбрано"></el-option>
         <el-option :value="FilterType.ByCategories" label="По категориям"></el-option>
         <el-option :value="FilterType.ByRangeOfAmounts" label="По диапазону сумм"></el-option>
-        <el-option :value="FilterType.ByIgnoredInCalculation" label="По неучитываемым расходам"></el-option>
-        <el-option :value="FilterType.ByFavorite" label="По помеченным расходам"></el-option>
+        <div v-if="this.typeOperation === OperationType.Expenses">
+          <el-option :value="FilterType.ByIgnoredInCalculation" label="По неучитываемым расходам"></el-option>
+          <el-option :value="FilterType.ByFavorite" label="По помеченным расходам"></el-option>
+        </div>
+        <div v-if="this.typeOperation === OperationType.Incomes">
+          <el-option :value="FilterType.ByIgnoredInCalculation" label="По неучитываемым доходам"></el-option>
+          <el-option :value="FilterType.ByFavorite" label="По помеченным доходам"></el-option>
+        </div>
       </el-select>
 
       <el-dialog v-model="isCategoryListDialogVisible" title="Выберите категорию" width="500" center align-center>
         <span>
           <financial-monitoring-category-list
+          :typeOperation="typeOperation"
           @category-selected="onCategorySelected">
           </financial-monitoring-category-list>
         </span>
@@ -56,23 +69,23 @@
           :key="tab.name"
           :label="tab.label"
           :name="tab.name"
-        >
-        <p v-if="tab.name === 'custom'">Выберите диапазон дат</p>
-        <el-date-picker
-          v-if="tab.name === 'custom'"
-          v-model="selectedFilterDatePicker"
-          type="daterange"
-          unlink-panels
-          range-separator="|"
-          start-placeholder="Дата начала"
-          end-placeholder="Дата окончания"
-          format="YYYY/MM/DD"
-          value-format="YYYY/MM/DD"
         />
-        </el-tab-pane>
       </el-tabs>
     </div>
   </div>
+
+    <p v-if="activeTab === 'custom'">Выберите диапазон дат</p>
+    <el-date-picker
+      v-if="activeTab === 'custom'"
+      v-model="selectedFilterDatePicker"
+      type="daterange"
+      unlink-panels
+      range-separator="|"
+      start-placeholder="Дата начала"
+      end-placeholder="Дата окончания"
+      format="YYYY/MM/DD"
+      value-format="YYYY/MM/DD"
+    />
 
     <div class="expenses-main">
     <div v-if="!expenses().length" style="text-align: center">
@@ -80,15 +93,16 @@
     </div>
 
     <div v-else>
-      <p style="color: red; text-align: right">{{ getSumExpenses() }}</p>
+      <p :style="{ color: typeOperation === OperationType.Expenses ? 'red' : 'green', textAlign: 'right' }">{{ typeOperation === OperationType.Expenses ? '-' : '+' }}{{ getSumExpenses() }}</p>
       <financial-monitoring-card
         v-for="group in expenses()"
         :key="group.id"
         :group="group"
         :typeGroupExpenses="typeGroupExpenses"
         :formatDate="formatDate"
-        :getExpenseWord="getExpenseWord"
+        :getWordByType="getWordByType"
         :GroupType="GroupType"
+        :currentMenuItem="typeOperation"
         @openInfoNote="openInfoNote"
         @favorite="isFavoriteExpense"
         @edit="openEditNote"
@@ -106,12 +120,15 @@ import FinancialMonitoringRangeFilterModal from "./FinancialMonitoringRangeFilte
 import FinancialMonitoringCategoryList from "./FinancialMonitoringCategoryList.vue";
 import { formatDate, formatDateForTab } from "@/utils.js";
 import FinancialMonitoringCard from "./FinancialMonitoringCard.vue";
+import { OperationType } from "@/stores/FinancialMonitoringStore";
 
 const SortType = {
   ByDateNew: 0,
   ByDateOld: 1,
-  ByHighestExpenses: 2,
-  ByLowestExpenses: 3,
+  ByHighest: 2,
+  ByLowest: 3,
+  ByHighestIncomes: 4,
+  ByLowestIncomes: 5,
 };
 
 const FilterType = {
@@ -129,6 +146,12 @@ const GroupType = {
 
 export default {
   name: "financial-monitoring-expenses",
+  props: {
+    typeOperation: {
+      type: Number,
+      required: true,
+    },
+  },
   components: {
     FinancialMonitoringRangeFilterModal,
     FinancialMonitoringCategoryList,
@@ -141,7 +164,7 @@ export default {
   created() {
     const pageParams = this.financialMonitoringStore.pageParams;
 
-    this.initializeTabs()
+    this.initializeTabs();
 
     if (pageParams.selectedDate) {
       this.activeTab = formatDateForTab(pageParams.selectedDate);
@@ -182,7 +205,7 @@ export default {
     }
   },
   computed: {
-    formattedDate() {
+    formattedDate: function () {
       return formatDate(this.dateString);
     },
   },
@@ -207,14 +230,15 @@ export default {
       isCategoryListDialogVisible: false,
       selectedFilterCategory: '',
       formatDate: formatDate,
+      OperationType,
     };
   },
   methods: {
     getSumExpenses: function () {
       let sum = 0;
-      const expensesArray = this.expenses();
+      const itemsArray = this.expenses();
       
-      for (let group of expensesArray) {
+      for (let group of itemsArray) {
         for (let item of group.items) {
           if (!item.isIgnoredInCalculation) {
             sum += Math.round(item.amount * 10) / 10;
@@ -236,13 +260,13 @@ export default {
       }
     },
     expenses: function () {
-      let expensesArray = this.filterExpensesByTabs();
+      let itemsArray = this.filterExpensesByTabs();
 
       if (this.typeFilterExpenses !== FilterType.NotSelected) {
-        expensesArray = this.filterExpenses();
+        itemsArray = this.filterExpenses();
       }
     
-      const groupedExpenses = this.groupExpenses(expensesArray);
+      const groupedExpenses = this.groupExpenses(itemsArray);
 
       const result = Object.keys(groupedExpenses).map(key => {
         return {
@@ -253,10 +277,10 @@ export default {
 
       return this.sortExpenses(result);
     },
-    groupExpenses: function (expensesArray) {
+    groupExpenses: function (itemsArray) {
       const grouped = {};
 
-      expensesArray.forEach(item => {
+      itemsArray.forEach(item => {
         const dateKey = item.date.split(' ')[0];
 
         const key = this.typeGroupExpenses === GroupType.ByDate ? dateKey : item.category;
@@ -269,10 +293,10 @@ export default {
 
       return grouped;
     },
-    sortExpenses: function (expensesArray) {
-      if (!expensesArray || expensesArray.length === 0) return expensesArray;
+    sortExpenses: function (itemsArray) {
+      if (!itemsArray || itemsArray.length === 0) return itemsArray;
 
-      const groupedExpenses = expensesArray.map(group => {
+      const groupedExpenses = itemsArray.map(group => {
         const totalAmount = group.items.reduce((sum, item) => sum + item.amount, 0);
         return {
           ...group,
@@ -286,7 +310,16 @@ export default {
         group.items.sort((a, b) => {
           const dateA = new Date(a.date);
           const dateB = new Date(b.date);
-          return this.typeSortExpenses == SortType.ByDateNew ? dateB - dateA : dateA - dateB;
+
+          if (this.typeSortExpenses === SortType.ByDateNew) {
+            return dateB - dateA;
+          } else if (this.typeSortExpenses === SortType.ByDateOld) {
+            return dateA - dateB;
+          } else if (this.typeSortExpenses === SortType.ByHighest) {
+            return b.amount - a.amount;
+          } else if (this.typeSortExpenses === SortType.ByLowest) {
+            return a.amount - b.amount;
+          }
         });
       });
 
@@ -295,49 +328,49 @@ export default {
           return groupedExpenses.sort((a, b) => b.maxDate - a.maxDate);
         case SortType.ByDateOld:
           return groupedExpenses.sort((a, b) => a.minDate - b.minDate);
-        case SortType.ByHighestExpenses:
+        case SortType.ByHighest:
           return groupedExpenses.sort((a, b) => b.totalAmount - a.totalAmount);
-        case SortType.ByLowestExpenses:
+        case SortType.ByLowest:
           return groupedExpenses.sort((a, b) => a.totalAmount - b.totalAmount);
         default:
           return groupedExpenses;
       }
     },
     filterExpenses: function () {
-      let expensesArray = this.filterExpensesByTabs();
+      let itemsArray = this.filterExpensesByTabs();
 
       if (this.selectedFilterCategory) {
-        expensesArray = expensesArray.filter(item => item.category === this.selectedFilterCategory);
+        itemsArray = itemsArray.filter(item => item.category === this.selectedFilterCategory);
       } else if (this.typeFilterExpenses == FilterType.ByRangeOfAmounts && this.applyRangeFilter) {
-        expensesArray = expensesArray.filter(item => {
+        itemsArray = itemsArray.filter(item => {
           const amount = item.amount;
           return amount >= this.selectedFilterMinAmount && amount <= this.selectedFilterMaxAmount
         });
       } else if (this.typeFilterExpenses == FilterType.ByIgnoredInCalculation) {
-        expensesArray = expensesArray.filter(item => item.isIgnoredInCalculation);
+        itemsArray = itemsArray.filter(item => item.isIgnoredInCalculation);
       } else if (this.typeFilterExpenses == FilterType.ByFavorite) {
-        expensesArray = expensesArray.filter(item => item.isFavorite);
+        itemsArray = itemsArray.filter(item => item.isFavorite);
       }
       
-      return expensesArray;
+      return itemsArray;
     },
     filterExpensesByTabs: function () {
-      let expensesArray = [];
-
+      let itemsArray = [];
+      
       if (this.activeTab.match(/^\d{2}\/\d{4}$/)) {
         const [month, year] = this.activeTab.split('/').map(Number);
         const startDate = new Date(year, month - 1, 1);
         const endDate = new Date(year, month, 0, 23, 59, 59, 999);
 
-        expensesArray = this.financialMonitoringStore.getExpensesByRangeDate(startDate, endDate);
+        itemsArray = this.financialMonitoringStore.getItemsByRangeDate(this.typeOperation, startDate, endDate);
       } else if (this.activeTab === 'custom') {
         const startDate = new Date(this.selectedFilterDatePicker?.[0]);
         const endDate = new Date(this.selectedFilterDatePicker?.[1]);
 
-        expensesArray = this.financialMonitoringStore.getExpensesByRangeDate(startDate, endDate);
+        itemsArray = this.financialMonitoringStore.getItemsByRangeDate(this.typeOperation, startDate, endDate);
       }
 
-      return expensesArray;
+      return itemsArray;
     },
     initializeTabs: function () {
       const uniqueDates = new Set();
@@ -345,8 +378,10 @@ export default {
       const currentDate = format(new Date(), "yyyy/MM/dd");
       uniqueDates.add(formatDateForTab(currentDate));
 
-      this.financialMonitoringStore.expenses.forEach(expense => {
-        const formattedDate = formatDateForTab(expense.date);
+      const notesArray = this.typeOperation === OperationType.Expenses ? 'expenses' : 'incomes';
+
+      this.financialMonitoringStore[notesArray].forEach(item => {
+        const formattedDate = formatDateForTab(item.date);
         uniqueDates.add(formattedDate);
       });
 
@@ -379,7 +414,9 @@ export default {
       });
     },
     isFavoriteExpense: function (id) {
-      for (let item of this.financialMonitoringStore.expenses) {
+      let notesArray = this.typeOperation === OperationType.Expenses ? this.financialMonitoringStore.expenses : this.financialMonitoringStore.incomes;
+
+      for (let item of notesArray) {
         if (item.id == id) {
           item.isFavorite = !item.isFavorite;
           break;
@@ -387,14 +424,14 @@ export default {
       }
     },
     deleteExpense: function (id) {
-      this.financialMonitoringStore.deleteExpense(id);
+      this.financialMonitoringStore.deleteExpense(id, this.typeOperation);
       this.removeEmptyTabs();
     },
     openEditNote: function (id) {
       this.previousActiveTabIndex = this.tabs.findIndex(tab => tab.name === this.activeTab);
 
       this.financialMonitoringStore.setPage('addNote', {
-        title: 'Редактирование раcхода',
+        title: 'Редактирование операции',
         id: id,
         typeSortExpenses: this.typeSortExpenses,
         typeFilterExpenses: this.typeFilterExpenses,
@@ -434,13 +471,20 @@ export default {
       this.isFilterByRangeOfAmountsVisible = false;
       this.typeFilterExpenses = FilterType.NotSelected;
     },
-    getExpenseWord: function (count) {
+    getWordByType: function (count) {
+      const words = {
+        [OperationType.Expenses]: ['расход', 'расхода', 'расходов'],
+        [OperationType.Incomes]: ['доход', 'дохода', 'доходов']
+      };
+
+      const [singular, few, many] = words[this.typeOperation] || [];
+
       if (count === 1 || (count % 10 === 1 && count % 100 !== 11)) {
-        return 'расход';
+          return singular;
       } else if (count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 10 || count % 100 >= 20)) {
-        return 'расхода';
+          return few;
       } else {
-        return 'расходов';
+          return many;
       }
     },
     removeEmptyTabs: function () {

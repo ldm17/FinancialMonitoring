@@ -31,6 +31,14 @@ body {
   & .el-menu {
     border-right: none;
   }
+
+  & .el-menu-item .router-link-aside {
+    display: block;
+    height: 100%;
+    width: 100%;
+    text-decoration: none;
+    color: inherit;
+  }
 }
 
 .layout-container .el-main {

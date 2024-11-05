@@ -3,6 +3,13 @@
     <p>{{ financialMonitoringStore.pageParams.title }}</p>
     <span v-if="isIgnoredInCalculation"><el-icon size="small"><Hide /></el-icon></span>
     <span v-if="isFavorite"><el-icon size="small"><CollectionTag /></el-icon></span>
+    
+    <p>Тип операции</p>
+      <el-select v-model="typeOperation" style="width: 250px" placeholder="Введите тип операции">
+        <el-option :value="OperationType.Expenses" label="Расход"></el-option>
+        <el-option :value="OperationType.Incomes" label="Доход"></el-option>
+      </el-select>
+
     <p>Сумма</p>
     <el-input style="width: 250px" v-model="amount" placeholder="Введите сумму" :formatter="(value) => `${value}`.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')">
     </el-input>
@@ -13,7 +20,7 @@
         v-model="selectedCategory"
         :fetch-suggestions="querySearch"
         :trigger-on-focus="false"
-        placeholder="Категория"
+        placeholder="Выберите категорию"
         clearable>
       </el-autocomplete>
 
@@ -24,6 +31,7 @@
     <el-dialog v-model="isCategoryListDialogVisible" title="Выберите категорию" width="500" center align-center>
       <span>
         <financial-monitoring-category-list
+        :typeOperation="typeOperation"
         @category-selected="onCategorySelected">
         </financial-monitoring-category-list>
       </span>
@@ -48,14 +56,14 @@
       <el-switch v-model="isIgnoredInCalculation" />
     </p>
 
-    <div v-if="financialMonitoringStore.pageParams.title == 'Добавление раcхода'">
+    <div v-if="financialMonitoringStore.pageParams.title == 'Добавление операции'">
       <p>
         <el-button @click="backToHome()">Назад</el-button>
         <el-button type="primary" @click="addExpense(amount, selectedCategory, datePicker)" :disabled="checkFieldsAddExpense()">Добавить</el-button>
       </p>
     </div>
 
-    <div v-if="financialMonitoringStore.pageParams.title == 'Редактирование раcхода'">
+    <div v-if="financialMonitoringStore.pageParams.title == 'Редактирование операции'">
       <p>
         <el-button @click="backToHome()">Назад</el-button>
         <el-button type="primary" @click="editExpense()" :disabled="checkFieldsAddExpense()">Сохранить</el-button>
@@ -65,12 +73,18 @@
 </template> 
 
 <script>
-import { useFinancialMonitoringStore } from '@/stores/FinancialMonitoringStore';
+import { OperationType, useFinancialMonitoringStore } from '@/stores/FinancialMonitoringStore';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import FinancialMonitoringCategoryList from './FinancialMonitoringCategoryList.vue';
 
 export default {
   name: "financial-monitoring-add-note",
+  props: {
+    currentMenuItem: {
+      type: Number,
+      required: true
+    },
+  },
   components: {
     FinancialMonitoringCategoryList,
   },
@@ -79,6 +93,7 @@ export default {
     return { financialMonitoringStore };
   },
   created() {
+    this.typeOperation = this.currentMenuItem;
     let expense = this.getExpense(this.financialMonitoringStore.pageParams.id);
 
     if (expense) {
@@ -116,6 +131,8 @@ export default {
       categoryListForSuggestion: [],
       errorMessage: false,
       isSubmitAttempted: false,
+      typeOperation: OperationType.Expenses,
+      OperationType,
     };
   },
   methods: {
@@ -157,7 +174,7 @@ export default {
         description: this.description,
         isIgnoredInCalculation: this.isIgnoredInCalculation,
         isFavorite: this.isFavorite,
-      });
+      }, this.typeOperation);
 
     this.financialMonitoringStore.setPage('expenses', {
       selectedDate: datePicker,
@@ -169,7 +186,8 @@ export default {
       }
     },
     getExpense: function (id) {
-      return this.financialMonitoringStore.expenses.find((item) => item.id == id);
+      const notesArray = this.typeOperation === OperationType.Expenses ? 'expenses' : 'incomes';
+      return this.financialMonitoringStore[notesArray].find((item) => item.id == id);
     },
     editExpense: function () {
       this.isSubmitAttempted = true;
@@ -259,13 +277,20 @@ export default {
     },
     loadAllCategoryList: function () {
       const store = this.financialMonitoringStore;
-      const categories = store.categories;
+
+      let categories;
+
+      if (this.typeOperation === OperationType.Expenses) {
+        categories = store.categories;
+      } else if (this.typeOperation === OperationType.Incomes) {
+        categories = store.categoriesIncomes;
+      }
 
       const extractCategories = (categories) => {
         let result = [];
         categories.forEach(category => {
           result.push({
-            value: store.getCategoryLabelById(category.id),
+            value: store.getCategoryLabelById(category.id, this.typeOperation),
             id: category.id,
           });
 

@@ -7,14 +7,14 @@
               {{ typeGroupExpenses == GroupType.ByDate ? formatDate(group.date) : group.category }}
             </el-col>
             <el-col :span="12" style="text-align: right">
-              <span style="color: red">-{{ group.items.reduce((sum, item) => sum + item.amount, 0) }}</span>
+              <span :style="{ color: typeOperation === OperationType.Expenses ? 'red' : 'green' }">{{ typeOperation === OperationType.Expenses ? '-' : '+' }}{{ group.items.reduce((sum, item) => sum + item.amount, 0) }}</span>
             </el-col>
           </el-row>
 
           <el-row>
             <el-col :span="24">
               <div v-if="typeGroupExpenses == GroupType.ByCategories">
-                <span>{{ group.items.length }} {{ getExpenseWord(group.items.length) }}</span>
+                <span>{{ group.items.length }} {{ getWordByType(group.items.length) }}</span>
                 <el-divider style="margin: 5px 0px" />
               </div>
             </el-col>
@@ -35,7 +35,7 @@
                 <span v-if="item.isIgnoredInCalculation">
                   <el-icon size="small"><Hide /></el-icon>
                 </span>
-                <span style="color: red;">-{{ item.amount }}</span>
+                <span :style="{ color: typeOperation === OperationType.Expenses ? 'red' : 'green' }">{{ typeOperation === OperationType.Expenses ? '-' : '+' }}{{ item.amount }}</span>
               </el-col>
             </el-row>
 
@@ -61,6 +61,7 @@
 
 <script>
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { OperationType } from "@/stores/FinancialMonitoringStore";
 
 export default {
   name: "financial-monitoring-card",
@@ -77,17 +78,29 @@ export default {
       type: Function,
       required: true
     },
-    getExpenseWord: {
+    getWordByType: {
       type: Function,
       required: true
     },
     GroupType: {
       type: Object,
       required: true
+    },
+    currentMenuItem: {
+      type: Number,
+      required: true,
+    },
+  },
+  watch: {
+    currentMenuItem(newValue) {
+      this.typeOperation = newValue;
     }
   },
   data() {
-    return {};
+    return {
+      typeOperation: this.currentMenuItem,
+      OperationType,
+    };
   },
   methods: {
     handleOpenInfoNote: function(id) {

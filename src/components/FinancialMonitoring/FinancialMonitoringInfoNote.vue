@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div v-for="item in financialMonitoringStore.expenses" :key="item.id">
+    <div v-for="item in items" :key="item.id">
       <div style="width: 300px; overflow-wrap: break-word; white-space: normal;" v-if="item.id == this.financialMonitoringStore.pageParams.id">
         <div>
           <p style="display: flex; justify-content: space-between; align-items: center;">
@@ -8,7 +8,7 @@
             <span style="display: flex; gap: 1px;">
               <el-button @click="isFavoriteExpense(item.id)" size="small"><el-icon><CollectionTag /></el-icon></el-button>
               <el-button @click="this.financialMonitoringStore.setPage('addNote', {
-                title: 'Редактирование раcхода', 
+                title: 'Редактирование операции', 
                 id: this.financialMonitoringStore.pageParams.id,
                 returnToInfoNote: true,
                 typeSortExpenses: this.financialMonitoringStore.pageParams.typeSortExpenses,
@@ -28,7 +28,7 @@
           <h1>
             <el-icon v-if="item.isFavorite" size="small"><CollectionTag /></el-icon>
             <el-icon v-if="item.isIgnoredInCalculation" size="small"><Hide /></el-icon>
-            <span style="color: red;">-{{ item.amount }}</span>
+            <span :style="{ color: typeOperation === OperationType.Expenses ? 'red' : 'green', textAlign: 'right' }">{{ typeOperation === OperationType.Expenses ? '-' : '+' }}{{ item.amount }}</span>
           </h1>
           <p>
             <el-icon><Calendar /></el-icon>
@@ -52,18 +52,37 @@
 </template>
 
 <script>
-import { useFinancialMonitoringStore } from "@/stores/FinancialMonitoringStore";
+import { OperationType, useFinancialMonitoringStore } from "@/stores/FinancialMonitoringStore";
 import { ElMessage, ElMessageBox } from 'element-plus';
 
 export default {
   name: "financial-monitoring-info-note",
+  props: {
+    currentMenuItem: {
+      type: Number,
+      required: true
+    },
+  },
   components: {},
   setup() {
     const financialMonitoringStore = useFinancialMonitoringStore();
     return { financialMonitoringStore };
   },
+  computed: {
+    items: function() {
+      return this.typeOperation === OperationType.Expenses ? this.financialMonitoringStore.expenses : this.financialMonitoringStore.incomes;
+    },
+  },
+  watch: {
+    currentMenuItem(newValue) {
+      this.typeOperation = newValue;
+    }
+  },
   data() {
-    return {};
+    return {
+      typeOperation: this.currentMenuItem,
+      OperationType,
+    };
   },
   methods: {
     backToHome: function () {
@@ -111,11 +130,12 @@ export default {
       })
     },
     isFavoriteExpense: function (id) {
-      for (let item of this.financialMonitoringStore.expenses) {
+      let notesArray = this.typeOperation === OperationType.Expenses ? this.financialMonitoringStore.expenses : this.financialMonitoringStore.incomes;
 
-      if (item.id == id) {
-        item.isFavorite = !item.isFavorite;
-        break;
+      for (let item of notesArray) {
+        if (item.id == id) {
+          item.isFavorite = !item.isFavorite;
+          break;
         }
       }
     },
