@@ -11,7 +11,7 @@ import Expenses from './pages/Expenses.vue';
 import Incomes from './pages/Incomes.vue';
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory('/FinancialMonitoring/'),
   routes: [
     {
       name: 'home',
