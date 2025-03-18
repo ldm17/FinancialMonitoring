@@ -11,13 +11,8 @@
                 title: 'Редактирование операции', 
                 id: this.financialMonitoringStore.pageParams.id,
                 returnToInfoNote: true,
-                typeSortExpenses: this.financialMonitoringStore.pageParams.typeSortExpenses,
-                typeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
-                typeGroupExpenses: this.financialMonitoringStore.pageParams.typeGroupExpenses,
-                activeTab: this.financialMonitoringStore.pageParams.activeTab,
-                selectedFilterCategory: this.financialMonitoringStore.pageParams.selectedFilterCategory,
                 showDeleteButton: true,
-                previousActiveTabIndex: this.financialMonitoringStore.pageParams.previousActiveTabIndex,
+                // previousActiveTabIndex: this.financialMonitoringStore.pageParams.previousActiveTabIndex,
               })"
                 size="small">
                 <el-icon><Edit /></el-icon>
@@ -86,14 +81,7 @@ export default {
   },
   methods: {
     backToHome: function () {
-      this.financialMonitoringStore.setPage('expenses', {
-        selectedTypeSortExpenses: this.financialMonitoringStore.pageParams.typeSortExpenses,
-        selectedTypeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
-        selectedTypeGroupExpenses: this.financialMonitoringStore.pageParams.typeGroupExpenses,
-        selectedActiveTab: this.financialMonitoringStore.pageParams.activeTab,
-        selectedFilterCategory: this.financialMonitoringStore.pageParams.selectedFilterCategory,
-        } 
-      );
+      this.financialMonitoringStore.setPage('expenses', {});
     },
     deleteExpense: function (id) {
       ElMessageBox.confirm(
@@ -112,15 +100,8 @@ export default {
           type: 'success',
           message: 'Запись удалена',
         })
-        this.financialMonitoringStore.deleteExpense(id);
-        this.financialMonitoringStore.setPage('expenses', {
-          selectedTypeSortExpenses: this.financialMonitoringStore.pageParams.typeSortExpenses,
-          selectedTypeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
-          selectedTypeGroupExpenses: this.financialMonitoringStore.pageParams.typeGroupExpenses,
-          selectedActiveTab: this.financialMonitoringStore.pageParams.activeTab,
-          selectedFilterCategory: this.financialMonitoringStore.pageParams.selectedFilterCategory,
-          selectedPreviousActiveTabIndex: this.financialMonitoringStore.pageParams.previousActiveTabIndex,
-        });
+        this.financialMonitoringStore.deleteExpense(id, this.typeOperation);
+        this.financialMonitoringStore.setPage('expenses', {});
       })
       .catch(() => {
         ElMessage({

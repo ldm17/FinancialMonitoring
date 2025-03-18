@@ -1,4 +1,43 @@
 import { defineStore } from 'pinia';
+import axios from 'axios';
+import { format, parseISO } from 'date-fns';
+
+interface Expense {
+  id: number;
+  idCategory: number;
+  amount: number;
+  category: string;
+  date: string;
+  description?: string;
+  isIgnoredInCalculation?: boolean;
+  isFavorite?: boolean;
+}
+
+export const SortType = {
+  ByDateNew: 0,
+  ByDateOld: 1,
+  ByHighest: 2,
+  ByLowest: 3,
+  ByHighestIncomes: 4,
+  ByLowestIncomes: 5,
+};
+
+export const FilterType = {
+  NotSelected: 0,
+  ByCategories: 1,
+  ByRangeOfAmounts: 2,
+  ByIgnoredInCalculation: 3,
+  ByFavorite: 4,
+};
+
+export const GroupType = {
+  ByDate: 0,
+  ByCategories: 1,
+};
+
+interface Note {
+  date?: string;
+}
 
 export const OperationType = {
   Expenses: 0,
@@ -13,49 +52,19 @@ type Category = {
 
 export const useFinancialMonitoringStore = defineStore('financialMonitoringStore', {
   state: () => ({
+    filtersExpenses: {
+      typeSortExpenses: SortType.ByDateNew,
+      typeFilterExpenses: FilterType.NotSelected,
+      typeGroupExpenses: GroupType.ByDate,
+      selectedFilterCategory: '',
+      selectedDate: '',
+      activeTab: '',
+    },
     currentPage: 'expenses',
     currentPageTitle: '',
     pageParams: {},
-    expenses: [
-      {
-        id: 2, idCategory: 2, amount: 30, category: 'Рестораны', date: '2024/07/27 14:30', description: '', isIgnoredInCalculation: false, isFavorite: false,
-      },
-      {
-        id: 1, idCategory: 1, amount: 15, category: 'Питание', date: '2024/07/25 09:15', description: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Voluptates ab deserunt, quia beatae molestias ratione natus repudiandae rem sunt nesciunt laborum maiores aliquam facere minus, impedit blanditiis quisquam atque dolor?', isIgnoredInCalculation: false, isFavorite: false,
-      },
-      {
-        id: 3, idCategory: 1, amount: 10, category: 'Транспорт', date: '2024/07/21 18:45', description: '', isIgnoredInCalculation: true, isFavorite: true,
-      },
-      {
-        id: 4, idCategory: 3, amount: 50, category: 'Транспорт', date: '2024/08/09 11:00', description: 'Lorem ipsum dolor sit amet consectetur adipisicing elit', isIgnoredInCalculation: false, isFavorite: false,
-      },
-      {
-        id: 5, idCategory: 2, amount: 50, category: 'Счет за воду', date: '2024/08/09 08:30', description: '', isIgnoredInCalculation: false, isFavorite: false,
-      },
-      {
-        id: 6, idCategory: 1, amount: 70, category: 'Топливо', date: '2024/08/07 16:20', description: '', isIgnoredInCalculation: false, isFavorite: false,
-      },
-      {
-        id: 7, idCategory: 3, amount: 40, category: 'Топливо', date: '2024/09/02 19:10', description: '', isIgnoredInCalculation: false, isFavorite: false,
-      },
-      {
-        id: 8, idCategory: 2, amount: 37, category: 'Рестораны', date: '2024/07/26 12:05', description: '', isIgnoredInCalculation: false, isFavorite: false,
-      },
-      {
-        id: 9, idCategory: 2, amount: 37, category: 'Рестораны', date: '2024/10/01 13:05', description: '', isIgnoredInCalculation: false, isFavorite: false,
-      },
-    ],
-    incomes: [
-      {
-        id: 1, idCategory: 1, amount: 155, category: 'Зарплата', date: '2024/10/15 20:30', description: 'Lorem ipsum dolor sit amet consectetur adipisicing elit. Voluptates ab deserunt, quia beatae molestias ratione natus repudiandae rem sunt nesciunt laborum maiores aliquam facere minus, impedit blanditiis quisquam atque dolor?', isIgnoredInCalculation: false, isFavorite: false,
-      },
-      {
-        id: 2, idCategory: 1, amount: 300, category: 'Зарплата', date: '2024/10/15 23:10', description: '', isIgnoredInCalculation: false, isFavorite: false,
-      },
-      {
-        id: 3, idCategory: 1, amount: 230, category: 'Зарплата', date: '2024/09/20 05:10', description: '', isIgnoredInCalculation: false, isFavorite: false,
-      },
-    ],
+    expenses: [] as Expense[],
+    incomes: [],
     categories: [
       {
         id: 1,
@@ -299,18 +308,50 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     setPageParams(params: number) {
       this.pageParams = params;
     },
-    // eslint-disable-next-line default-param-last
-    addNote(note = {}, typeOperation: number) {
-      const notesArray = typeOperation === OperationType.Expenses ? this.expenses : this.incomes;
+    async fetchNotes() {
+      try {
+        const response = await axios.get<Expense[]>('http://localhost:5124/api/expenses');
 
-      const notes: object[] = notesArray;
-      notes.push(note);
+        this.expenses = response.data.map((expense) => ({
+          id: expense.id,
+          idCategory: expense.idCategory,
+          amount: expense.amount,
+          category: expense.category,
+          date: format(parseISO(expense.date), 'yyyy/MM/dd HH:mm'),
+          description: expense.description,
+          isIgnoredInCalculation: expense.isIgnoredInCalculation,
+          isFavorite: expense.isFavorite,
+        }));
+      } catch (error) {
+        console.error('Ошибка при получении заметок:', error);
+      }
     },
-    deleteExpense(params: number, typeOperation: number) {
-      const notesArray = typeOperation === OperationType.Expenses ? this.expenses : this.incomes;
-
-      const indexNote = notesArray.findIndex((item: { id: number}) => item.id === params);
-      notesArray.splice(indexNote, 1);
+    // eslint-disable-next-line default-param-last
+    async addNote(note: Note = {}, typeOperation: number) {
+      try {
+        const utcDate = note.date ? new Date(note.date).toISOString() : null;
+        await axios.post('http://localhost:5124/api/expenses', {
+          ...note,
+          date: utcDate,
+        });
+        await this.fetchNotes();
+      } catch (error) {
+        console.error('Ошибка при добавлении записи:', error);
+      }
+    },
+    async deleteExpense(id: number, typeOperation: number) {
+      if (typeOperation === OperationType.Expenses) {
+        try {
+          await axios.delete(`http://localhost:5124/api/expenses/${id}`);
+          await this.fetchNotes();
+        } catch (error) {
+          console.error('Ошибка при удалении записи:', error);
+        }
+      } else {
+        const notesArray = this.incomes;
+        const indexNote = notesArray.findIndex((item: { id: number }) => item.id === id);
+        notesArray.splice(indexNote, 1);
+      }
     },
     getCategoryLabelById(params: number, typeOperation: number) {
       const categoriesToUse = typeOperation === OperationType.Expenses ? this.categories : this.categoriesIncomes;
@@ -333,7 +374,7 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     },
     getItemsByRangeDate(typeOperation: number, startDate: Date, endDate: Date) {
       const notesArray = typeOperation === OperationType.Expenses ? this.expenses : this.incomes;
-      const itemsArray = notesArray.filter((item: {date: string}) => {
+      const itemsArray = notesArray.filter((item: { date: string }) => {
         const date = new Date(item.date);
         return date >= startDate && date <= endDate;
       });

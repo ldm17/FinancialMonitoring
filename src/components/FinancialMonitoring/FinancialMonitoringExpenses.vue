@@ -2,7 +2,7 @@
   <div>
     <div class="toolbar">
     <div>
-      <el-select v-model="typeSortExpenses" style="width: 200px; margin-right: 15px" :disabled="!filterExpensesByTabs().length">
+      <el-select v-model="financialMonitoringStore.filtersExpenses.typeSortExpenses" style="width: 200px; margin-right: 15px" :disabled="!filterExpensesByTabs().length">
         <template #prefix>
           <el-icon><Sort /></el-icon>
         </template>
@@ -18,7 +18,7 @@
         </div>
       </el-select>
 
-      <el-select v-model="typeFilterExpenses" style="width: 200px; margin-right: 15px" :disabled="!filterExpensesByTabs().length" @change="checkTypeFilterExpenses()">
+      <el-select v-model="financialMonitoringStore.filtersExpenses.typeFilterExpenses" style="width: 200px; margin-right: 15px" :disabled="!filterExpensesByTabs().length" @change="checkTypeFilterExpenses()">
         <template #prefix>
           <el-icon><Filter /></el-icon>
         </template>
@@ -53,7 +53,7 @@
         </financial-monitoring-range-filter-modal>
       </div>
 
-      <el-select v-model="typeGroupExpenses" style="width: 200px" :disabled="!filterExpensesByTabs().length">
+      <el-select v-model="financialMonitoringStore.filtersExpenses.typeGroupExpenses" style="width: 200px" :disabled="!filterExpensesByTabs().length">
         <template #prefix>
           <el-icon><Tickets /></el-icon>
         </template>
@@ -63,7 +63,7 @@
     </div>
 
     <div>
-      <el-tabs v-model="activeTab">
+      <el-tabs v-model="financialMonitoringStore.filtersExpenses.activeTab">
         <el-tab-pane
           v-for="tab in tabs"
           :key="tab.name"
@@ -74,18 +74,20 @@
     </div>
   </div>
 
-    <p v-if="activeTab === 'custom'">Выберите диапазон дат</p>
-    <el-date-picker
-      v-if="activeTab === 'custom'"
-      v-model="selectedFilterDatePicker"
-      type="daterange"
-      unlink-panels
-      range-separator="|"
-      start-placeholder="Дата начала"
-      end-placeholder="Дата окончания"
-      format="YYYY/MM/DD"
-      value-format="YYYY/MM/DD"
-    />
+    <div class="custom-tab">
+      <p v-if="activeTab === 'custom'">Выберите диапазон дат</p>
+      <el-date-picker
+        v-if="activeTab === 'custom'"
+        v-model="selectedFilterDatePicker"
+        type="daterange"
+        unlink-panels
+        range-separator="|"
+        start-placeholder="Дата начала"
+        end-placeholder="Дата окончания"
+        format="YYYY/MM/DD"
+        value-format="YYYY/MM/DD"
+      />
+    </div>
 
     <div class="expenses-main">
     <div v-if="!expenses().length" style="text-align: center">
@@ -120,29 +122,7 @@ import FinancialMonitoringRangeFilterModal from "./FinancialMonitoringRangeFilte
 import FinancialMonitoringCategoryList from "./FinancialMonitoringCategoryList.vue";
 import { formatDate, formatDateForTab } from "@/utils.js";
 import FinancialMonitoringCard from "./FinancialMonitoringCard.vue";
-import { OperationType } from "@/stores/FinancialMonitoringStore";
-
-const SortType = {
-  ByDateNew: 0,
-  ByDateOld: 1,
-  ByHighest: 2,
-  ByLowest: 3,
-  ByHighestIncomes: 4,
-  ByLowestIncomes: 5,
-};
-
-const FilterType = {
-  NotSelected: 0,
-  ByCategories: 1,
-  ByRangeOfAmounts: 2,
-  ByIgnoredInCalculation: 3,
-  ByFavorite: 4,
-};
-
-const GroupType = {
-  ByDate: 0,
-  ByCategories: 1,
-};
+import { OperationType, SortType, FilterType, GroupType } from "@/stores/FinancialMonitoringStore";
 
 export default {
   name: "financial-monitoring-expenses",
@@ -161,65 +141,75 @@ export default {
     const financialMonitoringStore = useFinancialMonitoringStore();
     return { financialMonitoringStore };
   },
-  created() {
-    const pageParams = this.financialMonitoringStore.pageParams;
-
-    this.initializeTabs();
-
-    if (pageParams.selectedDate) {
-      this.activeTab = formatDateForTab(pageParams.selectedDate);
-    } else if (pageParams.selectedActiveTab) {
-      const currentTab = this.tabs.find(tab => tab.name === pageParams.selectedActiveTab);
-        
-      if (currentTab) {
-        this.activeTab = pageParams.selectedActiveTab;
-      } else {
-        if (this.financialMonitoringStore.pageParams.selectedPreviousActiveTabIndex) {
-          this.previousActiveTabIndex = this.financialMonitoringStore.pageParams.selectedPreviousActiveTabIndex;
-        }
+  watch: {
+    'financialMonitoringStore.expenses': {
+      handler() {
+        this.initializeTabs();
         this.removeEmptyTabs();
-      }
-    } else {
-      const lastTab = this.tabs[this.tabs.length - 1];
-      this.activeTab = lastTab.name;
-    }
+      },
+    },
+  },
+  created() {
+    this.financialMonitoringStore.fetchNotes()
+      .then(() => {
+        this.$nextTick(() => {
+          this.removeEmptyTabs();
+          if (this.selectedDate) {
+            this.setActiveTab(formatDateForTab(this.selectedDate));
+          } else if (this.activeTab) {
+            const currentTab = this.tabs.find(tab => tab.name === this.activeTab);
 
-    if (this.financialMonitoringStore.pageParams.selectedTypeSortExpenses) {
-      this.typeSortExpenses = this.financialMonitoringStore.pageParams.selectedTypeSortExpenses;
-    }
-
-    if (this.financialMonitoringStore.pageParams.selectedTypeFilterExpenses) {
-      this.typeFilterExpenses = this.financialMonitoringStore.pageParams.selectedTypeFilterExpenses;
-    }
-
-    if (this.financialMonitoringStore.pageParams.selectedTypeGroupExpenses) {
-      this.typeGroupExpenses = this.financialMonitoringStore.pageParams.selectedTypeGroupExpenses;
-    }
-
-    if (this.financialMonitoringStore.pageParams.currentTabs) {
-      this.tabs = this.financialMonitoringStore.pageParams.currentTabs;
-    }
-
-    if (this.financialMonitoringStore.pageParams.selectedFilterCategory) {
-      this.selectedFilterCategory = this.financialMonitoringStore.pageParams.selectedFilterCategory;
-    }
+            if (currentTab) {
+              this.setActiveTab(this.activeTab);
+            } else {
+              this.setActiveTab(this.tabs[this.tabs.length - 1].name)
+            }
+          } else {
+            const lastTab = this.tabs[this.tabs.length - 1];
+            this.setActiveTab(lastTab.name);
+          }
+        });
+      })
+      .catch(error => {
+        console.error('Ошибка загрузки:', error);
+      });
   },
   computed: {
     formattedDate: function () {
       return formatDate(this.dateString);
     },
+
+    typeSortExpenses: function () {
+      return this.financialMonitoringStore.filtersExpenses.typeSortExpenses;
+    },
+
+    typeFilterExpenses: function () {
+      return this.financialMonitoringStore.filtersExpenses.typeFilterExpenses;
+    },
+
+    typeGroupExpenses: function () {
+      return this.financialMonitoringStore.filtersExpenses.typeGroupExpenses;
+    },
+
+    activeTab: function () {
+      return this.financialMonitoringStore.filtersExpenses.activeTab;
+    },
+
+    selectedFilterCategory: function () {
+      return this.financialMonitoringStore.filtersExpenses.selectedFilterCategory;
+    },
+
+    selectedDate: function () {
+      return this.financialMonitoringStore.filtersExpenses.selectedDate;
+    }
   },
   data() {
     return {
       SortType: SortType,
-      typeSortExpenses: SortType.ByDateNew,
-      FilterType: FilterType,
-      typeFilterExpenses: FilterType.NotSelected,
       GroupType: GroupType,
-      typeGroupExpenses: GroupType.ByDate,
+      OperationType,
+      FilterType: FilterType,
       selectedFilterDatePicker: '',
-      activeTab: '',
-      previousActiveTabIndex: -1,
       tabs: [
         { label: 'Пользовательский', name: 'custom' },
       ],
@@ -228,16 +218,14 @@ export default {
       selectedFilterMaxAmount: null,
       applyRangeFilter: false,
       isCategoryListDialogVisible: false,
-      selectedFilterCategory: '',
       formatDate: formatDate,
-      OperationType,
     };
   },
   methods: {
     getSumExpenses: function () {
       let sum = 0;
       const itemsArray = this.expenses();
-      
+
       for (let group of itemsArray) {
         for (let item of group.items) {
           if (!item.isIgnoredInCalculation) {
@@ -251,12 +239,12 @@ export default {
       if (this.typeFilterExpenses == FilterType.NotSelected) {
         this.selectedFilterMinAmount = null;
         this.selectedFilterMaxAmount = null;
-        this.selectedFilterCategory = '';
+        this.financialMonitoringStore.filtersExpenses.selectedFilterCategory = '';
       } else if (this.typeFilterExpenses == FilterType.ByCategories) {
-          this.isCategoryListDialogVisible = true;
+        this.isCategoryListDialogVisible = true;
       } else if (this.typeFilterExpenses == FilterType.ByRangeOfAmounts) {
-          this.isFilterByRangeOfAmountsVisible = true;
-          this.applyRangeFilter = false;
+        this.isFilterByRangeOfAmountsVisible = true;
+        this.applyRangeFilter = false;
       }
     },
     expenses: function () {
@@ -265,7 +253,7 @@ export default {
       if (this.typeFilterExpenses !== FilterType.NotSelected) {
         itemsArray = this.filterExpenses();
       }
-    
+
       const groupedExpenses = this.groupExpenses(itemsArray);
 
       const result = Object.keys(groupedExpenses).map(key => {
@@ -351,12 +339,12 @@ export default {
       } else if (this.typeFilterExpenses == FilterType.ByFavorite) {
         itemsArray = itemsArray.filter(item => item.isFavorite);
       }
-      
+
       return itemsArray;
     },
     filterExpensesByTabs: function () {
       let itemsArray = [];
-      
+
       if (this.activeTab.match(/^\d{2}\/\d{4}$/)) {
         const [month, year] = this.activeTab.split('/').map(Number);
         const startDate = new Date(year, month - 1, 1);
@@ -375,9 +363,6 @@ export default {
     initializeTabs: function () {
       const uniqueDates = new Set();
 
-      const currentDate = format(new Date(), "yyyy/MM/dd");
-      uniqueDates.add(formatDateForTab(currentDate));
-
       const notesArray = this.typeOperation === OperationType.Expenses ? 'expenses' : 'incomes';
 
       this.financialMonitoringStore[notesArray].forEach(item => {
@@ -394,24 +379,27 @@ export default {
       const now = new Date();
       const currentMonth = now.getMonth() + 1;
       const currentYear = now.getFullYear();
-      
-      sortedDates.forEach(date => {
+
+      const dynamicTabs = sortedDates.map(date => {
         const [month, year] = date.split('/').map(Number);
-        let label = date;
 
         if (year === currentYear && month === currentMonth) {
-          label = 'Текущий месяц';
-        } else if (year === currentYear && month === currentMonth - 1) {
-          label = 'Предыдущий месяц';
-        } else if (currentMonth === 1 && month === 12 && year === currentYear - 1) {
-          label = 'Предыдущий месяц';
-        }
-
-        const existingTab = this.tabs.find(tab => tab.name === date);
-        if (!existingTab) {
-          this.tabs.push({ label: label, name: date });
+          return { label: 'Текущий месяц', name: date };
+        } else if (
+          (year === currentYear && month === currentMonth - 1) ||
+          (currentMonth === 1 && month === 12 && year === currentYear - 1)
+        ) {
+          return { label: 'Предыдущий месяц', name: date };
+        } else {
+          return { label: date, name: date };
         }
       });
+
+      this.tabs = [
+        { label: 'Пользовательский', name: 'custom' },
+        ...dynamicTabs
+      ];
+      console.log('initialize')
     },
     isFavoriteExpense: function (id) {
       let notesArray = this.typeOperation === OperationType.Expenses ? this.financialMonitoringStore.expenses : this.financialMonitoringStore.incomes;
@@ -423,38 +411,25 @@ export default {
         }
       }
     },
-    deleteExpense: function (id) {
-      this.financialMonitoringStore.deleteExpense(id, this.typeOperation);
-      this.removeEmptyTabs();
+    async deleteExpense(id) {
+      try {
+        await this.financialMonitoringStore.deleteExpense(id, this.typeOperation);
+        this.removeEmptyTabs();
+      } catch (error) {
+        console.error('Ошибка при удалении:', error);
+      }
     },
-    openEditNote: function (id) {
-      this.previousActiveTabIndex = this.tabs.findIndex(tab => tab.name === this.activeTab);
 
+    openEditNote: function (id) {
       this.financialMonitoringStore.setPage('addNote', {
         title: 'Редактирование операции',
         id: id,
-        typeSortExpenses: this.typeSortExpenses,
-        typeFilterExpenses: this.typeFilterExpenses,
-        typeGroupExpenses: this.typeGroupExpenses,
-        activeTab: this.activeTab,
-        tabs: this.tabs,
-        selectedFilterCategory: this.selectedFilterCategory,
         showDeleteButton: true,
-        previousActiveTabIndex: this.previousActiveTabIndex,
       });
     },
     openInfoNote: function (id) {
-      this.previousActiveTabIndex = this.tabs.findIndex(tab => tab.name === this.activeTab);
-
       this.financialMonitoringStore.setPage('infoNote', {
         id: id,
-        typeSortExpenses: this.typeSortExpenses,
-        typeFilterExpenses: this.typeFilterExpenses,
-        typeGroupExpenses: this.typeGroupExpenses,
-        activeTab: this.activeTab,
-        tabs: this.tabs,
-        selectedFilterCategory: this.selectedFilterCategory,
-        previousActiveTabIndex: this.previousActiveTabIndex,
       });
     },
     onRangeOfAmountsSelected: function ({ minAmount, maxAmount }) {
@@ -464,12 +439,12 @@ export default {
       this.applyRangeFilter = true;
     },
     onCategorySelected: function (category) {
-      this.selectedFilterCategory = category.label;
+      this.financialMonitoringStore.filtersExpenses.selectedFilterCategory = category.label;
       this.isCategoryListDialogVisible = false;
     },
     handleClose: function () {
       this.isFilterByRangeOfAmountsVisible = false;
-      this.typeFilterExpenses = FilterType.NotSelected;
+      this.financialMonitoringStore.filtersExpenses.typeFilterExpenses = FilterType.NotSelected;
     },
     getWordByType: function (count) {
       const words = {
@@ -480,40 +455,33 @@ export default {
       const [singular, few, many] = words[this.typeOperation] || [];
 
       if (count === 1 || (count % 10 === 1 && count % 100 !== 11)) {
-          return singular;
+        return singular;
       } else if (count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 10 || count % 100 >= 20)) {
-          return few;
+        return few;
       } else {
-          return many;
+        return many;
       }
     },
     removeEmptyTabs: function () {
       const currentActiveTab = this.activeTab;
-      const currentIndex = this.tabs.findIndex(tab => tab.name === currentActiveTab);
 
       for (let i = this.tabs.length - 1; i >= 0; i--) {
         const tab = this.tabs[i];
 
-        if (tab.name === 'custom' || tab.label === 'Текущий месяц') {
-          continue;
-        }
+        if (tab.name === 'custom' || tab.label === 'Текущий месяц') continue;
+        const hasEntries = this.financialMonitoringStore[this.typeOperation === OperationType.Expenses ? 'expenses' : 'incomes']
+          .some(item => formatDateForTab(item.date) === tab.name);
 
-        this.activeTab = tab.name;
-
-        const expensesForTab = this.filterExpensesByTabs();
-
-        if (expensesForTab.length === 0) {
-          this.tabs.splice(i, 1);
-        }
+        if (!hasEntries) this.tabs.splice(i, 1);
       }
 
-      if (currentIndex === -1) {
-        this.activeTab = this.tabs[this.previousActiveTabIndex].name;
-      } else if (!this.tabs.some(tab => tab.name === currentActiveTab)) {
-        this.activeTab = this.tabs[currentIndex].name;
-      } else {
-        this.activeTab = currentActiveTab;
+      if (!this.tabs.some(tab => tab.name === currentActiveTab)) {
+        const lastTab = this.tabs[this.tabs.length - 1].name;
+        this.setActiveTab(lastTab);
       }
+    },
+    setActiveTab(key) {
+      this.financialMonitoringStore.filtersExpenses.activeTab = key;
     },
   },
 };
@@ -533,6 +501,13 @@ export default {
     justify-content: center;
     flex-direction: column;
   }
+}
+
+.custom-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .expenses-main {

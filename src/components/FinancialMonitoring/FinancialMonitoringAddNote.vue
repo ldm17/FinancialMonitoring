@@ -140,20 +140,9 @@ export default {
       if (this.financialMonitoringStore.pageParams.returnToInfoNote) {
         this.financialMonitoringStore.setPage('infoNote', {
           id: this.financialMonitoringStore.pageParams.id,
-          typeSortExpenses: this.financialMonitoringStore.pageParams.typeSortExpenses,
-          typeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
-          typeGroupExpenses: this.financialMonitoringStore.pageParams.typeGroupExpenses,
-          activeTab: this.financialMonitoringStore.pageParams.activeTab,
-          selectedFilterCategory: this.financialMonitoringStore.pageParams.selectedFilterCategory,
         });
       } else {
-        this.financialMonitoringStore.setPage('expenses', {
-          selectedTypeSortExpenses: this.financialMonitoringStore.pageParams.typeSortExpenses,
-          selectedTypeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
-          selectedTypeGroupExpenses: this.financialMonitoringStore.pageParams.typeGroupExpenses,
-          selectedActiveTab: this.financialMonitoringStore.pageParams.activeTab,
-          selectedFilterCategory: this.financialMonitoringStore.pageParams.selectedFilterCategory,
-        });
+        this.financialMonitoringStore.setPage('expenses', {});
       }
     },
     addExpense: function (amount, selectedCategory, datePicker) {
@@ -165,20 +154,21 @@ export default {
     if (isValidCategory) {
       const formattedCategory = selectedCategory[0].toUpperCase() + selectedCategory.slice(1);
 
+      const utcDate = new Date(this.datePicker).toISOString();
+
       this.financialMonitoringStore.addNote({
-        id: this.financialMonitoringStore.expenses.length + 1,
         idCategory: isValidCategory.id,
         amount: parseFloat(amount),
         category: formattedCategory,
-        date: datePicker,
+        date: utcDate,
         description: this.description,
         isIgnoredInCalculation: this.isIgnoredInCalculation,
         isFavorite: this.isFavorite,
       }, this.typeOperation);
 
-    this.financialMonitoringStore.setPage('expenses', {
-      selectedDate: datePicker,
-      });
+    this.financialMonitoringStore.filtersExpenses.selectedDate = this.datePicker;
+
+    this.financialMonitoringStore.setPage('expenses', {});
 
       this.errorMessage = false;
       } else {
@@ -206,13 +196,7 @@ export default {
         expense.isIgnoredInCalculation = this.isIgnoredInCalculation;
         expense.isFavorite = this.isFavorite;
 
-        this.financialMonitoringStore.setPage('expenses', {
-        selectedTypeSortExpenses: this.financialMonitoringStore.pageParams.typeSortExpenses,
-        selectedTypeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
-        selectedTypeGroupExpenses: this.financialMonitoringStore.pageParams.typeGroupExpenses,
-        selectedActiveTab: this.financialMonitoringStore.pageParams.activeTab,
-        selectedFilterCategory: this.financialMonitoringStore.pageParams.selectedFilterCategory,
-      })
+        this.financialMonitoringStore.setPage('expenses', {});
 
         this.errorMessage = false;
       } else {
@@ -245,15 +229,8 @@ export default {
           type: 'success',
           message: 'Запись удалена',
         })
-        this.financialMonitoringStore.deleteExpense(id);
-        this.financialMonitoringStore.setPage('expenses', {
-          selectedTypeSortExpenses: this.financialMonitoringStore.pageParams.typeSortExpenses,
-          selectedTypeFilterExpenses: this.financialMonitoringStore.pageParams.typeFilterExpenses,
-          selectedTypeGroupExpenses: this.financialMonitoringStore.pageParams.typeGroupExpenses,
-          selectedActiveTab: this.financialMonitoringStore.pageParams.activeTab,
-          selectedFilterCategory: this.financialMonitoringStore.pageParams.selectedFilterCategory,
-          selectedPreviousActiveTabIndex: this.financialMonitoringStore.pageParams.previousActiveTabIndex,
-        });
+        this.financialMonitoringStore.deleteExpense(id, this.typeOperation);
+        this.financialMonitoringStore.setPage('expenses', {});
       })
       .catch(() => {
         ElMessage({
