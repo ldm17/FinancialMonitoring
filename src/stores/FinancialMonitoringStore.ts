@@ -11,6 +11,7 @@ interface Expense {
   description?: string;
   isIgnoredInCalculation?: boolean;
   isFavorite?: boolean;
+  operationType: number;
 }
 
 export const SortType = {
@@ -50,6 +51,8 @@ type Category = {
   children?: Category[];
 };
 
+const baseUrl = 'http://localhost:5124/api';
+
 export const useFinancialMonitoringStore = defineStore('financialMonitoringStore', {
   state: () => ({
     filtersExpenses: {
@@ -64,7 +67,7 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     currentPageTitle: '',
     pageParams: {},
     expenses: [] as Expense[],
-    incomes: [],
+    incomes: [] as Expense[],
     categories: [
       {
         id: 1,
@@ -308,49 +311,74 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     setPageParams(params: number) {
       this.pageParams = params;
     },
-    async fetchNotes() {
+    async fetchNotes(typeOperation: number) {
       try {
-        const response = await axios.get<Expense[]>('http://localhost:5124/api/expenses');
+        const url = `${baseUrl}/transactions?operationType=${typeOperation}`;
+        const notesArray = typeOperation === OperationType.Expenses ? 'expenses' : 'incomes';
 
-        this.expenses = response.data.map((expense) => ({
-          id: expense.id,
-          idCategory: expense.idCategory,
-          amount: expense.amount,
-          category: expense.category,
-          date: format(parseISO(expense.date), 'yyyy/MM/dd HH:mm'),
-          description: expense.description,
-          isIgnoredInCalculation: expense.isIgnoredInCalculation,
-          isFavorite: expense.isFavorite,
+        const response = await axios.get<Expense[]>(url);
+
+        this[notesArray] = response.data.map((note) => ({
+          id: note.id,
+          idCategory: note.idCategory,
+          amount: note.amount,
+          category: note.category,
+          date: format(parseISO(note.date), 'yyyy/MM/dd HH:mm'),
+          description: note.description,
+          isIgnoredInCalculation: note.isIgnoredInCalculation,
+          isFavorite: note.isFavorite,
+          operationType: note.operationType,
         }));
       } catch (error) {
         console.error('Ошибка при получении заметок:', error);
       }
     },
+    async fetchNote(id: number) {
+      try {
+        const url = `${baseUrl}/transactions/${id}`;
+        const response = await axios.get(url);
+
+        return response.data;
+      } catch (error) {
+        console.error('Ошибка при загрузке записи:', error);
+        return null;
+      }
+    },
     // eslint-disable-next-line default-param-last
     async addNote(note: Note = {}, typeOperation: number) {
       try {
+        const url = `${baseUrl}/transactions`;
         const utcDate = note.date ? new Date(note.date).toISOString() : null;
-        await axios.post('http://localhost:5124/api/expenses', {
+
+        await axios.post(url, {
           ...note,
           date: utcDate,
         });
-        await this.fetchNotes();
+        await this.fetchNotes(typeOperation);
       } catch (error) {
         console.error('Ошибка при добавлении записи:', error);
+        return false;
+      }
+
+      return true;
+    },
+    async editNote(updatedExpense: any) {
+      try {
+        const url = `${baseUrl}/transactions/${updatedExpense.id}`;
+        await axios.put(url, updatedExpense);
+
+        return true;
+      } catch (error) {
+        console.error('Ошибка при добавлении записи:', error);
+        return false;
       }
     },
     async deleteExpense(id: number, typeOperation: number) {
-      if (typeOperation === OperationType.Expenses) {
-        try {
-          await axios.delete(`http://localhost:5124/api/expenses/${id}`);
-          await this.fetchNotes();
-        } catch (error) {
-          console.error('Ошибка при удалении записи:', error);
-        }
-      } else {
-        const notesArray = this.incomes;
-        const indexNote = notesArray.findIndex((item: { id: number }) => item.id === id);
-        notesArray.splice(indexNote, 1);
+      try {
+        await axios.delete(`${baseUrl}/transactions/${id}`);
+        await this.fetchNotes(typeOperation);
+      } catch (error) {
+        console.error('Ошибка при удалении записи:', error);
       }
     },
     getCategoryLabelById(params: number, typeOperation: number) {

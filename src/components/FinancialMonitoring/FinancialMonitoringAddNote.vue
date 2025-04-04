@@ -11,7 +11,7 @@
       </el-select>
 
     <p>Сумма</p>
-    <el-input style="width: 250px" v-model="amount" placeholder="Введите сумму" :formatter="(value) => `${value}`.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')">
+    <el-input style="width: 250px" v-model="amount" placeholder="Введите сумму" :formatter="(value) => `${value}`.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')" clearable>
     </el-input>
 
     <p>Категория</p>
@@ -73,6 +73,8 @@
 </template> 
 
 <script>
+import axios from 'axios';
+import { format, parseISO } from 'date-fns';
 import { OperationType, useFinancialMonitoringStore } from '@/stores/FinancialMonitoringStore';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import FinancialMonitoringCategoryList from './FinancialMonitoringCategoryList.vue';
@@ -94,15 +96,10 @@ export default {
   },
   created() {
     this.typeOperation = this.currentMenuItem;
-    let expense = this.getExpense(this.financialMonitoringStore.pageParams.id);
 
-    if (expense) {
-      this.amount = expense.amount;
-      this.selectedCategory = expense.category;
-      this.datePicker = expense.date;
-      this.description = expense.description;
-      this.isIgnoredInCalculation = expense.isIgnoredInCalculation;
-      this.isFavorite = expense.isFavorite;
+    const expenseId = this.financialMonitoringStore.pageParams.id;
+    if (expenseId) {
+      this.fetchExpense(expenseId);
     } else {
       this.setCurrentDate();
     }
@@ -145,62 +142,87 @@ export default {
         this.financialMonitoringStore.setPage('expenses', {});
       }
     },
-    addExpense: function (amount, selectedCategory, datePicker) {
-    this.isSubmitAttempted = true;
+    async addExpense(amount, selectedCategory, datePicker) {
+      this.isSubmitAttempted = true;
 
-    const allCategories = this.loadAllCategoryList();
-    const isValidCategory = allCategories.find(item => item.value.toLowerCase() === selectedCategory.toLowerCase());
+      const allCategories = this.loadAllCategoryList();
+      const isValidCategory = allCategories.find(item => item.value.toLowerCase() === selectedCategory.toLowerCase());
 
-    if (isValidCategory) {
+      if (!isValidCategory) {
+        this.errorMessage = true;
+        return;
+      }
+
       const formattedCategory = selectedCategory[0].toUpperCase() + selectedCategory.slice(1);
 
-      const utcDate = new Date(this.datePicker).toISOString();
-
-      this.financialMonitoringStore.addNote({
+      const request = {
         idCategory: isValidCategory.id,
         amount: parseFloat(amount),
         category: formattedCategory,
-        date: utcDate,
+        date: new Date(this.datePicker).toISOString(),
         description: this.description,
         isIgnoredInCalculation: this.isIgnoredInCalculation,
         isFavorite: this.isFavorite,
-      }, this.typeOperation);
+        operationType: this.typeOperation,
+      };
 
-    this.financialMonitoringStore.filtersExpenses.selectedDate = this.datePicker;
+      const isSuccsess = await this.financialMonitoringStore.addNote(request, this.typeOperation);
 
-    this.financialMonitoringStore.setPage('expenses', {});
+      if (isSuccsess) {
+        this.financialMonitoringStore.filtersExpenses.selectedDate = datePicker;
 
-      this.errorMessage = false;
+        ElMessage.success('Запись успешно добавлена');
+        this.financialMonitoringStore.setPage('expenses', {});
       } else {
-        this.errorMessage = true;
+        ElMessage.error('Ошибка добавлении транзакции');
       }
     },
-    getExpense: function (id) {
-      const notesArray = this.typeOperation === OperationType.Expenses ? 'expenses' : 'incomes';
-      return this.financialMonitoringStore[notesArray].find((item) => item.id == id);
+    async fetchExpense(id) {
+      const expense = await this.financialMonitoringStore.fetchNote(id);
+
+      if (expense !== null) {
+        this.amount = expense.amount;
+        this.selectedCategory = expense.category;
+        this.datePicker = format(parseISO(expense.date), 'yyyy/MM/dd HH:mm'); // expense.date
+        this.description = expense.description;
+        this.isIgnoredInCalculation = expense.isIgnoredInCalculation;
+        this.isFavorite = expense.isFavorite;
+      } else {
+        ElMessage.error('Не удалось загрузить запись');
+      }
     },
-    editExpense: function () {
+    async editExpense() {
       this.isSubmitAttempted = true;
-      let expense = this.getExpense(this.financialMonitoringStore.pageParams.id);
 
       const allCategories = this.loadAllCategoryList();
       const isValidCategory = allCategories.find(item => item.value.toLowerCase() === this.selectedCategory.toLowerCase());
 
-      if (isValidCategory) {
-        const formattedCategory = this.selectedCategory[0].toUpperCase() + this.selectedCategory.slice(1);
-
-        expense.amount = parseFloat(this.amount);
-        expense.category = formattedCategory;
-        expense.date = this.datePicker;
-        expense.description = this.description;
-        expense.isIgnoredInCalculation = this.isIgnoredInCalculation;
-        expense.isFavorite = this.isFavorite;
-
-        this.financialMonitoringStore.setPage('expenses', {});
-
-        this.errorMessage = false;
-      } else {
+      if (!isValidCategory) {
         this.errorMessage = true;
+        return;
+      }
+
+      const formattedCategory = this.selectedCategory[0].toUpperCase() + this.selectedCategory.slice(1);
+      const utcDate = new Date(this.datePicker).toISOString();
+
+      const updatedExpense = {
+        id: this.financialMonitoringStore.pageParams.id,
+        amount: parseFloat(this.amount),
+        category: formattedCategory,
+        date: utcDate, // this.datePicker
+        description: this.description,
+        isIgnoredInCalculation: this.isIgnoredInCalculation,
+        isFavorite: this.isFavorite,
+        operationType: this.typeOperation,
+      };
+
+      const isSuccsess = await this.financialMonitoringStore.editNote(updatedExpense);
+
+      if (isSuccsess) {
+        ElMessage.success('Запись успешно обновлена');
+        this.financialMonitoringStore.setPage('expenses', {});
+      } else {
+        ElMessage.error('Не удалось обновить запись');
       }
     },
     checkFieldsAddExpense: function () {

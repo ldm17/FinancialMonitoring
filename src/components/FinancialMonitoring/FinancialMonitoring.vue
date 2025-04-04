@@ -31,10 +31,6 @@
 
         <el-main>
           <el-scrollbar>
-            <!-- <div class="toolbar" v-if="financialMonitoringStore.currentPage === 'expenses'">
-              <financial-monitoring-expenses>
-              </financial-monitoring-expenses>
-            </div> -->
             <div v-if="financialMonitoringStore.currentPage == 'expenses'">
               <RouterView/>
             </div>

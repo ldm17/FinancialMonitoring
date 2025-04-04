@@ -142,20 +142,22 @@ export default {
     return { financialMonitoringStore };
   },
   watch: {
-    'financialMonitoringStore.expenses': {
+    watchedNotesArray: {
       handler() {
         this.initializeTabs();
         this.removeEmptyTabs();
       },
+      deep: true,
     },
   },
   created() {
-    this.financialMonitoringStore.fetchNotes()
+    this.financialMonitoringStore.fetchNotes(this.typeOperation)
       .then(() => {
         this.$nextTick(() => {
           this.removeEmptyTabs();
           if (this.selectedDate) {
             this.setActiveTab(formatDateForTab(this.selectedDate));
+            this.financialMonitoringStore.filtersExpenses.selectedDate = '';
           } else if (this.activeTab) {
             const currentTab = this.tabs.find(tab => tab.name === this.activeTab);
 
@@ -201,7 +203,10 @@ export default {
 
     selectedDate: function () {
       return this.financialMonitoringStore.filtersExpenses.selectedDate;
-    }
+    },
+    watchedNotesArray: function () {
+      return this.typeOperation === OperationType.Expenses? this.financialMonitoringStore.expenses : this.financialMonitoringStore.incomes;
+    },
   },
   data() {
     return {
@@ -370,6 +375,11 @@ export default {
         uniqueDates.add(formattedDate);
       });
 
+      const currentFormattedDate = formatDateForTab(new Date());
+      if (!uniqueDates.has(currentFormattedDate)) {
+        uniqueDates.add(currentFormattedDate);
+      }
+
       const sortedDates = Array.from(uniqueDates).sort((a, b) => {
         const [monthA, yearA] = a.split('/').map(Number);
         const [monthB, yearB] = b.split('/').map(Number);
@@ -399,7 +409,6 @@ export default {
         { label: 'Пользовательский', name: 'custom' },
         ...dynamicTabs
       ];
-      console.log('initialize')
     },
     isFavoriteExpense: function (id) {
       let notesArray = this.typeOperation === OperationType.Expenses ? this.financialMonitoringStore.expenses : this.financialMonitoringStore.incomes;

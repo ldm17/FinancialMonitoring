@@ -9,6 +9,10 @@ import FinancialMonitoring from './components/FinancialMonitoring/FinancialMonit
 
 import { ElConfigProvider } from 'element-plus';
 import ru from 'element-plus/es/locale/lang/ru';
+import en from 'element-plus/es/locale/lang/en';
+
+import dayjs from 'dayjs';
+import 'dayjs/locale/ru';
 
 export default {
   name: "App",
@@ -16,9 +20,13 @@ export default {
     FinancialMonitoring,
     ElConfigProvider,
   },
+  created() {
+    dayjs.locale('ru');
+  },
   data() {
     return {
       locale: ru,
+      locales: { en, ru }
     };
   },
   methods: {},

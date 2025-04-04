@@ -12,7 +12,6 @@
                 id: this.financialMonitoringStore.pageParams.id,
                 returnToInfoNote: true,
                 showDeleteButton: true,
-                // previousActiveTabIndex: this.financialMonitoringStore.pageParams.previousActiveTabIndex,
               })"
                 size="small">
                 <el-icon><Edit /></el-icon>
