@@ -12,6 +12,7 @@ interface Expense {
   isIgnoredInCalculation?: boolean;
   isFavorite?: boolean;
   operationType: number;
+  walletId: number,
 }
 
 export const SortType = {
@@ -45,6 +46,11 @@ export const OperationType = {
   Incomes: 1,
 };
 
+export const WalletType = {
+  Cash: 0,
+  BankCard: 1,
+};
+
 type Category = {
   id: number;
   label: string;
@@ -62,6 +68,7 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
       selectedFilterCategory: '',
       selectedDate: '',
       activeTab: '',
+      currentWallet: WalletType.Cash,
     },
     currentPage: 'expenses',
     currentPageTitle: '',
@@ -311,9 +318,9 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     setPageParams(params: number) {
       this.pageParams = params;
     },
-    async fetchNotes(typeOperation: number) {
+    async fetchNotes(typeOperation: number, currentWallet: number) {
       try {
-        const url = `${baseUrl}/transactions?operationType=${typeOperation}`;
+        const url = `${baseUrl}/transactions?operationType=${typeOperation}&walletId=${currentWallet}`;
         const notesArray = typeOperation === OperationType.Expenses ? 'expenses' : 'incomes';
 
         const response = await axios.get<Expense[]>(url);
@@ -328,6 +335,7 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
           isIgnoredInCalculation: note.isIgnoredInCalculation,
           isFavorite: note.isFavorite,
           operationType: note.operationType,
+          walletId: note.walletId,
         }));
       } catch (error) {
         console.error('Ошибка при получении заметок:', error);
@@ -348,13 +356,14 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     async addNote(note: Note = {}, typeOperation: number) {
       try {
         const url = `${baseUrl}/transactions`;
+        const walletId = this.filtersExpenses.currentWallet;
         const utcDate = note.date ? new Date(note.date).toISOString() : null;
 
         await axios.post(url, {
           ...note,
           date: utcDate,
         });
-        await this.fetchNotes(typeOperation);
+        await this.fetchNotes(typeOperation, walletId);
       } catch (error) {
         console.error('Ошибка при добавлении записи:', error);
         return false;
@@ -369,14 +378,16 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
 
         return true;
       } catch (error) {
-        console.error('Ошибка при добавлении записи:', error);
+        console.error('Ошибка при редактировании записи:', error);
         return false;
       }
     },
     async deleteExpense(id: number, typeOperation: number) {
       try {
+        const walletId = this.filtersExpenses.currentWallet;
+
         await axios.delete(`${baseUrl}/transactions/${id}`);
-        await this.fetchNotes(typeOperation);
+        await this.fetchNotes(typeOperation, walletId);
       } catch (error) {
         console.error('Ошибка при удалении записи:', error);
       }

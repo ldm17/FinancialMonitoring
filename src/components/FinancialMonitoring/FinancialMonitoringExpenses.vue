@@ -72,6 +72,16 @@
         />
       </el-tabs>
     </div>
+
+    <div>
+      <el-select v-model="financialMonitoringStore.filtersExpenses.currentWallet" style="width: 200px">
+        <template #prefix>
+          <el-icon><WalletFilled /></el-icon>
+        </template>
+        <el-option :value="WalletType.Cash" label="Наличные"></el-option>
+        <el-option :value="WalletType.BankCard" label="Банковская карта"></el-option>
+      </el-select>
+    </div>
   </div>
 
     <div class="custom-tab">
@@ -122,7 +132,7 @@ import FinancialMonitoringRangeFilterModal from "./FinancialMonitoringRangeFilte
 import FinancialMonitoringCategoryList from "./FinancialMonitoringCategoryList.vue";
 import { formatDate, formatDateForTab } from "@/utils.js";
 import FinancialMonitoringCard from "./FinancialMonitoringCard.vue";
-import { OperationType, SortType, FilterType, GroupType } from "@/stores/FinancialMonitoringStore";
+import { OperationType, SortType, FilterType, GroupType, WalletType } from "@/stores/FinancialMonitoringStore";
 
 export default {
   name: "financial-monitoring-expenses",
@@ -149,9 +159,14 @@ export default {
       },
       deep: true,
     },
+    currentWallet() {
+      this.financialMonitoringStore.fetchNotes(this.typeOperation, this.financialMonitoringStore.filtersExpenses.currentWallet)
+      this.initializeTabs();
+      this.removeEmptyTabs();
+    },
   },
   created() {
-    this.financialMonitoringStore.fetchNotes(this.typeOperation)
+    this.financialMonitoringStore.fetchNotes(this.typeOperation, this.financialMonitoringStore.filtersExpenses.currentWallet)
       .then(() => {
         this.$nextTick(() => {
           this.removeEmptyTabs();
@@ -207,6 +222,9 @@ export default {
     watchedNotesArray: function () {
       return this.typeOperation === OperationType.Expenses? this.financialMonitoringStore.expenses : this.financialMonitoringStore.incomes;
     },
+    currentWallet: function () {
+      return this.financialMonitoringStore.filtersExpenses.currentWallet;
+    },
   },
   data() {
     return {
@@ -214,6 +232,7 @@ export default {
       GroupType: GroupType,
       OperationType,
       FilterType: FilterType,
+      WalletType: WalletType,
       selectedFilterDatePicker: '',
       tabs: [
         { label: 'Пользовательский', name: 'custom' },
@@ -360,6 +379,8 @@ export default {
         const startDate = new Date(this.selectedFilterDatePicker?.[0]);
         const endDate = new Date(this.selectedFilterDatePicker?.[1]);
 
+        endDate.setHours(23, 59, 59, 999);
+
         itemsArray = this.financialMonitoringStore.getItemsByRangeDate(this.typeOperation, startDate, endDate);
       }
 
@@ -428,7 +449,6 @@ export default {
         console.error('Ошибка при удалении:', error);
       }
     },
-
     openEditNote: function (id) {
       this.financialMonitoringStore.setPage('addNote', {
         title: 'Редактирование операции',

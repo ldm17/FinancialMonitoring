@@ -164,6 +164,7 @@ export default {
         isIgnoredInCalculation: this.isIgnoredInCalculation,
         isFavorite: this.isFavorite,
         operationType: this.typeOperation,
+        walletId: this.financialMonitoringStore.filtersExpenses.currentWallet,
       };
 
       const isSuccsess = await this.financialMonitoringStore.addNote(request, this.typeOperation);
@@ -214,6 +215,7 @@ export default {
         isIgnoredInCalculation: this.isIgnoredInCalculation,
         isFavorite: this.isFavorite,
         operationType: this.typeOperation,
+        walletId: this.financialMonitoringStore.filtersExpenses.currentWallet,
       };
 
       const isSuccsess = await this.financialMonitoringStore.editNote(updatedExpense);
