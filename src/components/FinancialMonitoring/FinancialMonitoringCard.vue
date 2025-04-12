@@ -4,7 +4,7 @@
       <el-card style="margin-bottom: 15px;">
           <el-row :gutter="20">
             <el-col :span="12">
-              {{ typeGroupExpenses == GroupType.ByDate ? formatDate(group.date) : group.category }}
+              {{ typeGroupExpenses == GroupType.ByDate ? formatDate(group.date) : this.financialMonitoringStore.getCategoryLabelById(group.items[0].idCategory, typeOperation) }}
             </el-col>
             <el-col :span="12" style="text-align: right">
               <span :style="{ color: typeOperation === OperationType.Expenses ? 'red' : 'green' }">{{ typeOperation === OperationType.Expenses ? '-' : '+' }}{{ group.items.reduce((sum, item) => sum + item.amount, 0) }}</span>
@@ -24,7 +24,7 @@
             <el-row :gutter="20" style="margin-top: 15px;">
               <el-col :span="12">
                 <div>
-                  {{ typeGroupExpenses == GroupType.ByDate ? item.category : formatDate(item.date)}}
+                  {{ typeGroupExpenses == GroupType.ByDate ? this.financialMonitoringStore.getCategoryLabelById(item.idCategory, typeOperation) : formatDate(item.date)}}
                 </div>
                 <span>{{ item.date.split(' ')[1] }}</span>
               </el-col>
@@ -60,6 +60,7 @@
 </template>
 
 <script>
+import { useFinancialMonitoringStore } from "@/stores/FinancialMonitoringStore";
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { OperationType } from "@/stores/FinancialMonitoringStore";
 
@@ -90,6 +91,17 @@ export default {
       type: Number,
       required: true,
     },
+  },
+  setup() {
+    const financialMonitoringStore = useFinancialMonitoringStore();
+    return { financialMonitoringStore };
+  },
+  async created() {
+    const isSuccessFetchCategories = await this.financialMonitoringStore.fetchCategories(this.typeOperation);
+
+    if (isSuccessFetchCategories === null) {
+      ElMessage.error('Не удалось загрузить категории');
+    };
   },
   watch: {
     currentMenuItem(newValue) {

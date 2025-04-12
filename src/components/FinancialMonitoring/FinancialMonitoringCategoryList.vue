@@ -33,9 +33,16 @@ export default {
     return {
       defaultProps: {
         children: 'children',
-        label: 'label',
+        label: 'name',
       },
       OperationType,
+    };
+  },
+  async created() {
+    const isSuccessFetchCategories = await this.financialMonitoringStore.fetchCategories(this.typeOperation);
+
+    if (isSuccessFetchCategories === null) {
+      ElMessage.error('Не удалось загрузить категории');
     };
   },
   methods: {
@@ -45,7 +52,7 @@ export default {
     },
     getCategoryList: function () {
       if (this.typeOperation === OperationType.Expenses) {
-        return this.financialMonitoringStore.categories;
+        return this.financialMonitoringStore.categoriesExpenses;
       } else if (this.typeOperation === OperationType.Incomes) {
         return this.financialMonitoringStore.categoriesIncomes;
       }

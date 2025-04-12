@@ -94,8 +94,14 @@ export default {
     const financialMonitoringStore = useFinancialMonitoringStore();
     return { financialMonitoringStore };
   },
-  created() {
+  async created() {
     this.typeOperation = this.currentMenuItem;
+
+    const isSuccessFetchCategories = await this.financialMonitoringStore.fetchCategories(this.typeOperation);
+
+    if (isSuccessFetchCategories === null) {
+      ElMessage.error('Не удалось загрузить категории');
+    };
 
     const expenseId = this.financialMonitoringStore.pageParams.id;
     if (expenseId) {
@@ -103,8 +109,7 @@ export default {
     } else {
       this.setCurrentDate();
     }
-  },
-  mounted() {
+
     this.categoryListForSuggestion = this.loadAllCategoryList();
   },
   watch: {
@@ -153,12 +158,9 @@ export default {
         return;
       }
 
-      const formattedCategory = selectedCategory[0].toUpperCase() + selectedCategory.slice(1);
-
       const request = {
         idCategory: isValidCategory.id,
         amount: parseFloat(amount),
-        category: formattedCategory,
         date: new Date(this.datePicker).toISOString(),
         description: this.description,
         isIgnoredInCalculation: this.isIgnoredInCalculation,
@@ -183,7 +185,7 @@ export default {
 
       if (expense !== null) {
         this.amount = expense.amount;
-        this.selectedCategory = expense.category;
+        this.selectedCategory = this.financialMonitoringStore.getCategoryLabelById(expense.idCategory, this.typeOperation);
         this.datePicker = format(parseISO(expense.date), 'yyyy/MM/dd HH:mm'); // expense.date
         this.description = expense.description;
         this.isIgnoredInCalculation = expense.isIgnoredInCalculation;
@@ -203,13 +205,12 @@ export default {
         return;
       }
 
-      const formattedCategory = this.selectedCategory[0].toUpperCase() + this.selectedCategory.slice(1);
       const utcDate = new Date(this.datePicker).toISOString();
 
       const updatedExpense = {
         id: this.financialMonitoringStore.pageParams.id,
+        idCategory: isValidCategory.id,
         amount: parseFloat(this.amount),
-        category: formattedCategory,
         date: utcDate, // this.datePicker
         description: this.description,
         isIgnoredInCalculation: this.isIgnoredInCalculation,
@@ -282,7 +283,7 @@ export default {
       let categories;
 
       if (this.typeOperation === OperationType.Expenses) {
-        categories = store.categories;
+        categories = store.categoriesExpenses;
       } else if (this.typeOperation === OperationType.Incomes) {
         categories = store.categoriesIncomes;
       }

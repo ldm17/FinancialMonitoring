@@ -6,7 +6,6 @@ interface Expense {
   id: number;
   idCategory: number;
   amount: number;
-  category: string;
   date: string;
   description?: string;
   isIgnoredInCalculation?: boolean;
@@ -53,8 +52,13 @@ export const WalletType = {
 
 type Category = {
   id: number;
-  label: string;
+  userId: string;
+  name: string;
+  operationType: number;
+  parentId?: number;
+  parent?: Category;
   children?: Category[];
+  transactions?: Expense[];
 };
 
 const baseUrl = 'http://localhost:5124/api';
@@ -75,236 +79,8 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     pageParams: {},
     expenses: [] as Expense[],
     incomes: [] as Expense[],
-    categories: [
-      {
-        id: 1,
-        label: 'Питание',
-        children: [
-          {
-            id: 15,
-            label: 'Рестораны',
-          },
-          {
-            id: 16,
-            label: 'Кафе',
-          },
-        ],
-      },
-      {
-        id: 2,
-        label: 'Транспорт',
-        children: [
-          {
-            id: 17,
-            label: 'Такси',
-          },
-          {
-            id: 18,
-            label: 'Топливо',
-          },
-          {
-            id: 19,
-            label: 'Обслуживание автомобиля',
-          },
-        ],
-      },
-      {
-        id: 3,
-        label: 'Счета и коммунальные услуги',
-        children: [
-          {
-            id: 20,
-            label: 'Счет за телефон',
-          },
-          {
-            id: 21,
-            label: 'Счет за воду',
-          },
-          {
-            id: 22,
-            label: 'Счет за электроэнергию',
-          },
-          {
-            id: 23,
-            label: 'Счет за интернет',
-          },
-          {
-            id: 24,
-            label: 'Арендные платы',
-          },
-        ],
-      },
-      {
-        id: 4,
-        label: 'Развлечения и досуг',
-        children: [
-          {
-            id: 25,
-            label: 'Кино',
-          },
-          {
-            id: 26,
-            label: 'Игры',
-          },
-          {
-            id: 27,
-            label: 'Хобби',
-          },
-        ],
-      },
-      {
-        id: 5,
-        label: 'Покупки',
-        children: [
-          {
-            id: 28,
-            label: 'Одежда',
-          },
-          {
-            id: 29,
-            label: 'Обувь',
-          },
-          {
-            id: 30,
-            label: 'Аксессуары',
-          },
-          {
-            id: 31,
-            label: 'Электроника',
-          },
-        ],
-      },
-      {
-        id: 6,
-        label: 'Здоровье и фитнесс',
-        children: [
-          {
-            id: 32,
-            label: 'Аптека',
-          },
-          {
-            id: 33,
-            label: 'Спорт',
-          },
-          {
-            id: 34,
-            label: 'Врач',
-          },
-          {
-            id: 35,
-            label: 'Личная гигиена',
-          },
-        ],
-      },
-      {
-        id: 7,
-        label: 'Образование',
-        children: [
-          {
-            id: 36,
-            label: 'Школьные и университетские взносы',
-          },
-          {
-            id: 37,
-            label: 'Учебные материалы',
-          },
-          {
-            id: 38,
-            label: 'Курсы и тренинги',
-          },
-          {
-            id: 39,
-            label: 'Репетиторы',
-          },
-        ],
-      },
-      {
-        id: 8,
-        label: 'Подарки и пожертвования',
-        children: [
-          {
-            id: 40,
-            label: 'Свадьба',
-          },
-          {
-            id: 41,
-            label: 'Учебные материалы',
-          },
-          {
-            id: 42,
-            label: 'Благотворительность',
-          },
-          {
-            id: 43,
-            label: 'Похороны',
-          },
-        ],
-      },
-      {
-        id: 9,
-        label: 'Семья',
-        children: [
-          {
-            id: 44,
-            label: 'Дети',
-          },
-          {
-            id: 45,
-            label: 'Ремонт',
-          },
-          {
-            id: 46,
-            label: 'Домашние расходы',
-          },
-          {
-            id: 47,
-            label: 'Домашние животные',
-          },
-        ],
-      },
-      {
-        id: 10,
-        label: 'Путешествия',
-      },
-      {
-        id: 11,
-        label: 'Инвестиции',
-      },
-      {
-        id: 12,
-        label: 'Налоги и сборы',
-      },
-      {
-        id: 13,
-        label: 'Прочие расходы',
-      },
-      {
-        id: 14,
-        label: 'Исходящий перевод',
-      },
-    ] as Category[],
-    categoriesIncomes: [
-      {
-        id: 55,
-        label: 'Зарплата',
-      },
-      {
-        id: 56,
-        label: 'Премия',
-      },
-      {
-        id: 57,
-        label: 'Проценты',
-      },
-      {
-        id: 58,
-        label: 'Подарки',
-      },
-      {
-        id: 59,
-        label: 'Прочие поступления',
-      },
-    ] as Category[],
+    categoriesExpenses: [] as Category[],
+    categoriesIncomes: [] as Category[],
   }),
   actions: {
     setPage(page: string, params: object) {
@@ -329,7 +105,6 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
           id: note.id,
           idCategory: note.idCategory,
           amount: note.amount,
-          category: note.category,
           date: format(parseISO(note.date), 'yyyy/MM/dd HH:mm'),
           description: note.description,
           isIgnoredInCalculation: note.isIgnoredInCalculation,
@@ -349,6 +124,21 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
         return response.data;
       } catch (error) {
         console.error('Ошибка при загрузке записи:', error);
+        return null;
+      }
+    },
+    async fetchCategories(typeOperation: number) {
+      try {
+        const url = `${baseUrl}/categories/${typeOperation}`;
+        const categoriesArray = typeOperation === OperationType.Expenses ? this.categoriesExpenses : this.categoriesIncomes;
+
+        const response = await axios.get<Category[]>(url);
+        categoriesArray.splice(0);
+        categoriesArray.push(...response.data);
+
+        return true;
+      } catch (error) {
+        console.error('Ошибка при загрузке категорий:', error);
         return null;
       }
     },
@@ -392,23 +182,29 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
         console.error('Ошибка при удалении записи:', error);
       }
     },
-    getCategoryLabelById(params: number, typeOperation: number) {
-      const categoriesToUse = typeOperation === OperationType.Expenses ? this.categories : this.categoriesIncomes;
+    getCategoryLabelById(id: number, typeOperation: number) {
+      const categoriesToUse = typeOperation === OperationType.Expenses ? this.categoriesExpenses : this.categoriesIncomes;
 
       const findCategory = (categories: Category[]): string | null => {
-        if (categories.length === 0) return null;
-        const category = categories[0];
-        if (category.id === params) {
-          return category.label;
-        }
-        if (category.children) {
-          const foundLabel = findCategory(category.children);
-          if (foundLabel) {
-            return foundLabel;
+        let result = null;
+
+        categories.some((category) => {
+          if (category.id === id) {
+            result = category.name;
+            return true;
           }
-        }
-        return findCategory(categories.slice(1));
+
+          if (category.children && category.children.length > 0) {
+            result = findCategory(category.children);
+            return result !== null;
+          }
+
+          return false;
+        });
+
+        return result;
       };
+
       return findCategory(categoriesToUse);
     },
     getItemsByRangeDate(typeOperation: number, startDate: Date, endDate: Date) {

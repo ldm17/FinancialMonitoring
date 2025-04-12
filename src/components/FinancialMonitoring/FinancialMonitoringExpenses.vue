@@ -282,7 +282,7 @@ export default {
 
       const result = Object.keys(groupedExpenses).map(key => {
         return {
-          [this.typeGroupExpenses === GroupType.ByDate ? 'date' : 'category']: key,
+          [this.typeGroupExpenses === GroupType.ByDate ? 'date' : 'idCategory']: key,
           items: groupedExpenses[key]
         };
       });
@@ -295,7 +295,7 @@ export default {
       itemsArray.forEach(item => {
         const dateKey = item.date.split(' ')[0];
 
-        const key = this.typeGroupExpenses === GroupType.ByDate ? dateKey : item.category;
+        const key = this.typeGroupExpenses === GroupType.ByDate ? dateKey : item.idCategory;
 
         if (!grouped[key]) {
           grouped[key] = [];
@@ -352,7 +352,7 @@ export default {
       let itemsArray = this.filterExpensesByTabs();
 
       if (this.selectedFilterCategory) {
-        itemsArray = itemsArray.filter(item => item.category === this.selectedFilterCategory);
+        itemsArray = itemsArray.filter(item => this.financialMonitoringStore.getCategoryLabelById(item.idCategory, this.typeOperation) === this.selectedFilterCategory);
       } else if (this.typeFilterExpenses == FilterType.ByRangeOfAmounts && this.applyRangeFilter) {
         itemsArray = itemsArray.filter(item => {
           const amount = item.amount;
