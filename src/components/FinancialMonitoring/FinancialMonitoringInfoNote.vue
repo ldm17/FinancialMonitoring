@@ -4,7 +4,7 @@
       <div style="width: 300px; overflow-wrap: break-word; white-space: normal;" v-if="item.id == this.financialMonitoringStore.pageParams.id">
         <div>
           <p style="display: flex; justify-content: space-between; align-items: center;">
-            <span>{{ this.financialMonitoringStore.getCategoryLabelById(item.idCategory, typeOperation) }}</span>
+            <span>{{ this.financialMonitoringStore.categories.get(item.categoryId)?.name }}</span>
             <span style="display: flex; gap: 1px;">
               <el-button @click="isFavoriteExpense(item.id)" size="small"><el-icon><CollectionTag /></el-icon></el-button>
               <el-button @click="this.financialMonitoringStore.setPage('addNote', {

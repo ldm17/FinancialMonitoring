@@ -2,6 +2,17 @@
   <div>
     <div class="toolbar">
     <div>
+      <el-tabs v-model="financialMonitoringStore.filtersExpenses.activeTab">
+        <el-tab-pane
+          v-for="tab in tabs"
+          :key="tab.name"
+          :label="tab.label"
+          :name="tab.name"
+        />
+      </el-tabs>
+    </div>
+
+    <div>
       <el-select v-model="financialMonitoringStore.filtersExpenses.typeSortExpenses" style="width: 200px; margin-right: 15px" :disabled="!filterExpensesByTabs().length">
         <template #prefix>
           <el-icon><Sort /></el-icon>
@@ -63,23 +74,16 @@
     </div>
 
     <div>
-      <el-tabs v-model="financialMonitoringStore.filtersExpenses.activeTab">
-        <el-tab-pane
-          v-for="tab in tabs"
-          :key="tab.name"
-          :label="tab.label"
-          :name="tab.name"
-        />
-      </el-tabs>
-    </div>
-
-    <div>
-      <el-select v-model="financialMonitoringStore.filtersExpenses.currentWallet" style="width: 200px">
+      <el-select v-model="financialMonitoringStore.filtersExpenses.currentWalletId" style="width: 200px" placeholder="Выберите кошелёк">
         <template #prefix>
           <el-icon><WalletFilled /></el-icon>
         </template>
-        <el-option :value="WalletType.Cash" label="Наличные"></el-option>
-        <el-option :value="WalletType.BankCard" label="Банковская карта"></el-option>
+        <el-option
+          v-for="wallet in financialMonitoringStore.wallets"
+          :key="wallet.id"
+          :value="wallet.id"
+          :label="wallet.name"
+        ></el-option>
       </el-select>
     </div>
   </div>
@@ -132,7 +136,8 @@ import FinancialMonitoringRangeFilterModal from "./FinancialMonitoringRangeFilte
 import FinancialMonitoringCategoryList from "./FinancialMonitoringCategoryList.vue";
 import { formatDate, formatDateForTab } from "@/utils.js";
 import FinancialMonitoringCard from "./FinancialMonitoringCard.vue";
-import { OperationType, SortType, FilterType, GroupType, WalletType } from "@/stores/FinancialMonitoringStore";
+import { OperationType, SortType, FilterType, GroupType } from "@/stores/FinancialMonitoringStore";
+import { ElMessage } from 'element-plus';
 
 export default {
   name: "financial-monitoring-expenses",
@@ -159,14 +164,19 @@ export default {
       },
       deep: true,
     },
-    currentWallet() {
-      this.financialMonitoringStore.fetchNotes(this.typeOperation, this.financialMonitoringStore.filtersExpenses.currentWallet)
+    currentWalletId() {
+      this.financialMonitoringStore.fetchNotes(this.typeOperation, this.financialMonitoringStore.filtersExpenses.currentWalletId)
       this.initializeTabs();
       this.removeEmptyTabs();
     },
   },
-  created() {
-    this.financialMonitoringStore.fetchNotes(this.typeOperation, this.financialMonitoringStore.filtersExpenses.currentWallet)
+  async created() {
+    const isSuccessFetchWallets = await this.financialMonitoringStore.fetchWallets();
+    if (isSuccessFetchWallets === null) {
+      ElMessage.error('Не удалось загрузить кошельки');
+    };
+
+    this.financialMonitoringStore.fetchNotes(this.typeOperation, this.financialMonitoringStore.filtersExpenses.currentWalletId)
       .then(() => {
         this.$nextTick(() => {
           this.removeEmptyTabs();
@@ -188,7 +198,8 @@ export default {
         });
       })
       .catch(error => {
-        console.error('Ошибка загрузки:', error);
+        console.error('Ошибка при загрузке транзакций:', error);
+        ElMessage.error('Не удалось загрузить транзакции');
       });
   },
   computed: {
@@ -222,8 +233,8 @@ export default {
     watchedNotesArray: function () {
       return this.typeOperation === OperationType.Expenses? this.financialMonitoringStore.expenses : this.financialMonitoringStore.incomes;
     },
-    currentWallet: function () {
-      return this.financialMonitoringStore.filtersExpenses.currentWallet;
+    currentWalletId: function () {
+      return this.financialMonitoringStore.filtersExpenses.currentWalletId;
     },
   },
   data() {
@@ -232,7 +243,6 @@ export default {
       GroupType: GroupType,
       OperationType,
       FilterType: FilterType,
-      WalletType: WalletType,
       selectedFilterDatePicker: '',
       tabs: [
         { label: 'Пользовательский', name: 'custom' },
@@ -282,7 +292,7 @@ export default {
 
       const result = Object.keys(groupedExpenses).map(key => {
         return {
-          [this.typeGroupExpenses === GroupType.ByDate ? 'date' : 'idCategory']: key,
+          [this.typeGroupExpenses === GroupType.ByDate ? 'date' : 'categoryId']: key,
           items: groupedExpenses[key]
         };
       });
@@ -295,7 +305,7 @@ export default {
       itemsArray.forEach(item => {
         const dateKey = item.date.split(' ')[0];
 
-        const key = this.typeGroupExpenses === GroupType.ByDate ? dateKey : item.idCategory;
+        const key = this.typeGroupExpenses === GroupType.ByDate ? dateKey : item.categoryId;
 
         if (!grouped[key]) {
           grouped[key] = [];
@@ -352,7 +362,7 @@ export default {
       let itemsArray = this.filterExpensesByTabs();
 
       if (this.selectedFilterCategory) {
-        itemsArray = itemsArray.filter(item => this.financialMonitoringStore.getCategoryLabelById(item.idCategory, this.typeOperation) === this.selectedFilterCategory);
+        itemsArray = itemsArray.filter(item => this.financialMonitoringStore.categories.get(item.categoryId)?.name === this.selectedFilterCategory);
       } else if (this.typeFilterExpenses == FilterType.ByRangeOfAmounts && this.applyRangeFilter) {
         itemsArray = itemsArray.filter(item => {
           const amount = item.amount;
@@ -522,6 +532,7 @@ export default {
   align-items: center;
   justify-content: center;
   flex-direction: column;
+  gap: 10px;
 
   & .el-tabs {
     text-align: center;

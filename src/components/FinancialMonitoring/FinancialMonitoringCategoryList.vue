@@ -47,15 +47,11 @@ export default {
   },
   methods: {
     handleNodeClick: function (data) {
-      const categoryLabel = this.financialMonitoringStore.getCategoryLabelById(data.id, this.typeOperation);
+      const categoryLabel = this.financialMonitoringStore.categories.get(data.id)?.name;
       this.$emit('category-selected', { id: data.id, label: categoryLabel });
     },
     getCategoryList: function () {
-      if (this.typeOperation === OperationType.Expenses) {
-        return this.financialMonitoringStore.categoriesExpenses;
-      } else if (this.typeOperation === OperationType.Incomes) {
-        return this.financialMonitoringStore.categoriesIncomes;
-      }
+      return Array.from(this.financialMonitoringStore.categories.values()).filter((category) => !category.parentId);
     },
   },
 };

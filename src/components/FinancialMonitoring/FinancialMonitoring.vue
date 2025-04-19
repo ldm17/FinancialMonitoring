@@ -65,7 +65,7 @@ import FinancialMonitoringExpenses from './FinancialMonitoringExpenses.vue';
 import FinancialMonitoringAddNote from './FinancialMonitoringAddNote.vue';
 import FinancialMonitoringRangeFilterModal from './FinancialMonitoringRangeFilterModal.vue';
 import FinancialMonitoringInfoNote from './FinancialMonitoringInfoNote.vue';
-import { OperationType, WalletType } from '@/stores/FinancialMonitoringStore';
+import { OperationType } from '@/stores/FinancialMonitoringStore';
 
 export default {
   name: "financial-monitoring",

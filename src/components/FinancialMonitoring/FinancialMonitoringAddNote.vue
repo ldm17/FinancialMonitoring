@@ -159,14 +159,14 @@ export default {
       }
 
       const request = {
-        idCategory: isValidCategory.id,
+        categoryId: isValidCategory.id,
         amount: parseFloat(amount),
         date: new Date(this.datePicker).toISOString(),
         description: this.description,
         isIgnoredInCalculation: this.isIgnoredInCalculation,
         isFavorite: this.isFavorite,
         operationType: this.typeOperation,
-        walletId: this.financialMonitoringStore.filtersExpenses.currentWallet,
+        walletId: this.financialMonitoringStore.filtersExpenses.currentWalletId,
       };
 
       const isSuccsess = await this.financialMonitoringStore.addNote(request, this.typeOperation);
@@ -185,7 +185,7 @@ export default {
 
       if (expense !== null) {
         this.amount = expense.amount;
-        this.selectedCategory = this.financialMonitoringStore.getCategoryLabelById(expense.idCategory, this.typeOperation);
+        this.selectedCategory = this.financialMonitoringStore.categories.get(expense.categoryId)?.name;
         this.datePicker = format(parseISO(expense.date), 'yyyy/MM/dd HH:mm'); // expense.date
         this.description = expense.description;
         this.isIgnoredInCalculation = expense.isIgnoredInCalculation;
@@ -209,14 +209,14 @@ export default {
 
       const updatedExpense = {
         id: this.financialMonitoringStore.pageParams.id,
-        idCategory: isValidCategory.id,
+        categoryId: isValidCategory.id,
         amount: parseFloat(this.amount),
         date: utcDate, // this.datePicker
         description: this.description,
         isIgnoredInCalculation: this.isIgnoredInCalculation,
         isFavorite: this.isFavorite,
         operationType: this.typeOperation,
-        walletId: this.financialMonitoringStore.filtersExpenses.currentWallet,
+        walletId: this.financialMonitoringStore.filtersExpenses.currentWalletId,
       };
 
       const isSuccsess = await this.financialMonitoringStore.editNote(updatedExpense);
@@ -277,22 +277,14 @@ export default {
         return (labelCategory.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0);
       };
     },
-    loadAllCategoryList: function () {
+    loadAllCategoryList() {
       const store = this.financialMonitoringStore;
-
-      let categories;
-
-      if (this.typeOperation === OperationType.Expenses) {
-        categories = store.categoriesExpenses;
-      } else if (this.typeOperation === OperationType.Incomes) {
-        categories = store.categoriesIncomes;
-      }
 
       const extractCategories = (categories) => {
         let result = [];
-        categories.forEach(category => {
+        categories.forEach((category) => {
           result.push({
-            value: store.getCategoryLabelById(category.id, this.typeOperation),
+            value: category.name,
             id: category.id,
           });
 
@@ -303,7 +295,11 @@ export default {
         return result;
       };
 
-      return extractCategories(categories);
+      const rootCategories = Array.from(store.categories.values()).filter(
+        (category) => !category.parentId
+      );
+      
+      return extractCategories(rootCategories);
     },
     setCurrentDate: function () {
       const today = new Date();

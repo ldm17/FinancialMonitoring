@@ -4,7 +4,7 @@ import { format, parseISO } from 'date-fns';
 
 interface Expense {
   id: number;
-  idCategory: number;
+  categoryId: number;
   amount: number;
   date: string;
   description?: string;
@@ -45,20 +45,13 @@ export const OperationType = {
   Incomes: 1,
 };
 
-export const WalletType = {
-  Cash: 0,
-  BankCard: 1,
-};
-
 type Category = {
   id: number;
   userId: string;
   name: string;
   operationType: number;
   parentId?: number;
-  parent?: Category;
   children?: Category[];
-  transactions?: Expense[];
 };
 
 const baseUrl = 'http://localhost:5124/api';
@@ -72,15 +65,15 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
       selectedFilterCategory: '',
       selectedDate: '',
       activeTab: '',
-      currentWallet: WalletType.Cash,
+      currentWalletId: 0,
     },
     currentPage: 'expenses',
     currentPageTitle: '',
     pageParams: {},
     expenses: [] as Expense[],
     incomes: [] as Expense[],
-    categoriesExpenses: [] as Category[],
-    categoriesIncomes: [] as Category[],
+    categories: new Map<number, Category>(),
+    wallets: [],
   }),
   actions: {
     setPage(page: string, params: object) {
@@ -94,16 +87,16 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     setPageParams(params: number) {
       this.pageParams = params;
     },
-    async fetchNotes(typeOperation: number, currentWallet: number) {
+    async fetchNotes(typeOperation: number, currentWalletId: number) {
       try {
-        const url = `${baseUrl}/transactions?operationType=${typeOperation}&walletId=${currentWallet}`;
+        const url = `${baseUrl}/transactions?operationType=${typeOperation}&walletId=${currentWalletId}`;
         const notesArray = typeOperation === OperationType.Expenses ? 'expenses' : 'incomes';
 
         const response = await axios.get<Expense[]>(url);
 
         this[notesArray] = response.data.map((note) => ({
           id: note.id,
-          idCategory: note.idCategory,
+          categoryId: note.categoryId,
           amount: note.amount,
           date: format(parseISO(note.date), 'yyyy/MM/dd HH:mm'),
           description: note.description,
@@ -113,7 +106,8 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
           walletId: note.walletId,
         }));
       } catch (error) {
-        console.error('Ошибка при получении заметок:', error);
+        console.error('Ошибка при загрузке транзакций:', error);
+        throw error;
       }
     },
     async fetchNote(id: number) {
@@ -129,12 +123,13 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     },
     async fetchCategories(typeOperation: number) {
       try {
-        const url = `${baseUrl}/categories/${typeOperation}`;
-        const categoriesArray = typeOperation === OperationType.Expenses ? this.categoriesExpenses : this.categoriesIncomes;
+        const url = `${baseUrl}/categories`;
 
         const response = await axios.get<Category[]>(url);
-        categoriesArray.splice(0);
-        categoriesArray.push(...response.data);
+
+        const filteredCategories = response.data.filter((category) => category.operationType === typeOperation);
+
+        this.categories = this.buildCategoryTree(filteredCategories);
 
         return true;
       } catch (error) {
@@ -142,11 +137,24 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
         return null;
       }
     },
+    async fetchWallets() {
+      try {
+        const url = `${baseUrl}/wallets`;
+
+        const response = await axios.get(url);
+        this.wallets = response.data;
+
+        return true;
+      } catch (error) {
+        console.error('Ошибка загрузки кошельков:', error);
+        return null;
+      }
+    },
     // eslint-disable-next-line default-param-last
     async addNote(note: Note = {}, typeOperation: number) {
       try {
         const url = `${baseUrl}/transactions`;
-        const walletId = this.filtersExpenses.currentWallet;
+        const walletId = this.filtersExpenses.currentWalletId;
         const utcDate = note.date ? new Date(note.date).toISOString() : null;
 
         await axios.post(url, {
@@ -174,7 +182,7 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     },
     async deleteExpense(id: number, typeOperation: number) {
       try {
-        const walletId = this.filtersExpenses.currentWallet;
+        const walletId = this.filtersExpenses.currentWalletId;
 
         await axios.delete(`${baseUrl}/transactions/${id}`);
         await this.fetchNotes(typeOperation, walletId);
@@ -182,30 +190,30 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
         console.error('Ошибка при удалении записи:', error);
       }
     },
-    getCategoryLabelById(id: number, typeOperation: number) {
-      const categoriesToUse = typeOperation === OperationType.Expenses ? this.categoriesExpenses : this.categoriesIncomes;
+    buildCategoryTree(categories: Category[]): Map<number, Category> {
+      const categoryById: Map<number, Category> = new Map();
 
-      const findCategory = (categories: Category[]): string | null => {
-        let result = null;
+      categories.forEach((category) => {
+        const mutableCategory = { ...category, children: [] };
+        categoryById.set(mutableCategory.id, mutableCategory);
+      });
 
-        categories.some((category) => {
-          if (category.id === id) {
-            result = category.name;
-            return true;
-          }
+      categories.forEach((category) => {
+        if (category.parentId == null) {
+          return;
+        }
 
-          if (category.children && category.children.length > 0) {
-            result = findCategory(category.children);
-            return result !== null;
-          }
+        const parentCategory = categoryById.get(category.parentId);
+        const childCategory = categoryById.get(category.id);
 
-          return false;
-        });
+        if (parentCategory && childCategory) {
+          parentCategory.children?.push(childCategory);
+        } else {
+          console.warn(`Категория с id=${category.id} или её родительская категория с id=${category.parentId} не найдена`);
+        }
+      });
 
-        return result;
-      };
-
-      return findCategory(categoriesToUse);
+      return categoryById;
     },
     getItemsByRangeDate(typeOperation: number, startDate: Date, endDate: Date) {
       const notesArray = typeOperation === OperationType.Expenses ? this.expenses : this.incomes;

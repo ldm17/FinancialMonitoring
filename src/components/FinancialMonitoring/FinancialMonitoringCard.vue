@@ -1,10 +1,10 @@
 <template>
   <div>
     <div class="expenses__card">
-      <el-card style="margin-bottom: 15px;">
+      <el-card class="card-background-color" style="margin-bottom: 15px;">
           <el-row :gutter="20">
             <el-col :span="12">
-              {{ typeGroupExpenses == GroupType.ByDate ? formatDate(group.date) : this.financialMonitoringStore.getCategoryLabelById(group.items[0].idCategory, typeOperation) }}
+              {{ typeGroupExpenses == GroupType.ByDate ? formatDate(group.date) : this.financialMonitoringStore.categories.get(group.items[0].categoryId)?.name }}
             </el-col>
             <el-col :span="12" style="text-align: right">
               <span :style="{ color: typeOperation === OperationType.Expenses ? 'red' : 'green' }">{{ typeOperation === OperationType.Expenses ? '-' : '+' }}{{ group.items.reduce((sum, item) => sum + item.amount, 0) }}</span>
@@ -14,17 +14,19 @@
           <el-row>
             <el-col :span="24">
               <div v-if="typeGroupExpenses == GroupType.ByCategories">
+                <div style="margin: 5px 0px"></div>
                 <span>{{ group.items.length }} {{ getWordByType(group.items.length) }}</span>
-                <el-divider style="margin: 5px 0px" />
               </div>
             </el-col>
           </el-row>
+          
+          <el-divider style="margin: 10px 0 5px; opacity: 0.3;" />
 
           <div class="visible-actions-note" @click="handleOpenInfoNote(item.id)" v-for="(item, index) in group.items" :key="item.id">
             <el-row :gutter="20" style="margin-top: 15px;">
               <el-col :span="12">
                 <div>
-                  {{ typeGroupExpenses == GroupType.ByDate ? this.financialMonitoringStore.getCategoryLabelById(item.idCategory, typeOperation) : formatDate(item.date)}}
+                  {{ typeGroupExpenses == GroupType.ByDate ? this.financialMonitoringStore.categories.get(item.categoryId)?.name : formatDate(item.date)}}
                 </div>
                 <span>{{ item.date.split(' ')[1] }}</span>
               </el-col>
@@ -52,7 +54,7 @@
                 </el-col>
             </el-row>
 
-            <el-divider style="margin: 5px 0px" v-if="index < group.items.length - 1" />
+            <el-divider style="margin: 5px 0px; opacity: 0.3;" v-if="index < group.items.length - 1" />
           </div>
       </el-card>
     </div>
@@ -177,5 +179,10 @@ export default {
   white-space: nowrap;
   text-overflow: ellipsis;
   display: block;
+}
+
+.card-background-color {
+  background: linear-gradient(160deg, #6CD0FF, #1C2E4C);
+  color: white;
 }
 </style>
