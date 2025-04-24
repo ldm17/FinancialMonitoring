@@ -18,6 +18,19 @@
                 <span>Доходы</span>
               </router-link>
             </el-menu-item>
+            <el-sub-menu index="3">
+              <template #title>
+                <el-icon><Setting /></el-icon>
+                <span>Настройки</span>
+              </template>
+              <el-menu-item-group>
+                <el-menu-item index="3-1">
+                  <router-link :to="{ name: 'wallet-list-settings' }" class="router-link-aside">
+                    <span>Кошельки</span>
+                  </router-link>
+                </el-menu-item>
+              </el-menu-item-group>
+            </el-sub-menu>
           </el-menu-item-group>
         </el-menu>
       </el-aside>
@@ -25,18 +38,21 @@
       <el-container>
         <el-header style="text-align: right; font-size: 15px; height: 70px;">
           <div class="header">
-            <el-button v-if="financialMonitoringStore.currentPage !== 'addNote' && financialMonitoringStore.currentPage !== 'rangeFilter'" type="primary" :icon="Icons.Plus" @click="openAddExpense()">Добавить</el-button>
+            <el-button
+              v-if="financialMonitoringStore.currentPage !== 'addNote' && $route.name !== 'wallet-list-settings'"
+              type="primary" :icon="Icons.Plus" @click="openAddExpense()">Добавить</el-button>
+            <el-button v-if="$route.name === 'wallet-list-settings'" type="primary" :icon="Icons.Plus" @click="openAddWallet()">Добавить</el-button>
           </div>
         </el-header>
 
         <el-main>
           <el-scrollbar>
             <div v-if="financialMonitoringStore.currentPage == 'expenses'">
-              <RouterView/>
+              <RouterView />
             </div>
-            
+
             <div v-if="financialMonitoringStore.currentPage === 'addNote'">
-              <financial-monitoring-add-note
+              <financial-monitoring-add-note 
               :currentMenuItem="currentMenuItem">
               </financial-monitoring-add-note>
             </div>
@@ -47,7 +63,7 @@
             </div>
 
             <div v-if="financialMonitoringStore.currentPage === 'infoNote'">
-              <financial-monitoring-info-note
+              <financial-monitoring-info-note 
               :currentMenuItem="currentMenuItem">
               </financial-monitoring-info-note>
             </div>
@@ -61,7 +77,7 @@
 <script>
 import * as Icons from '@element-plus/icons-vue';
 import { useFinancialMonitoringStore } from '@/stores/FinancialMonitoringStore';
-import FinancialMonitoringExpenses from './FinancialMonitoringExpenses.vue';
+import FinancialMonitoringTransactions from './FinancialMonitoringTransactions.vue';
 import FinancialMonitoringAddNote from './FinancialMonitoringAddNote.vue';
 import FinancialMonitoringRangeFilterModal from './FinancialMonitoringRangeFilterModal.vue';
 import FinancialMonitoringInfoNote from './FinancialMonitoringInfoNote.vue';
@@ -70,7 +86,7 @@ import { OperationType } from '@/stores/FinancialMonitoringStore';
 export default {
   name: "financial-monitoring",
   components: {
-    FinancialMonitoringExpenses,
+    FinancialMonitoringTransactions,
     FinancialMonitoringAddNote,
     FinancialMonitoringRangeFilterModal,
     FinancialMonitoringInfoNote,
@@ -90,6 +106,9 @@ export default {
       this.financialMonitoringStore.setPage('addNote', {
         title: 'Добавление операции',
       });
+    },
+    openAddWallet: function () {
+      this.$router.push({ name: 'wallet-edit-settings', params: { action: 'new' } });
     },
     handleMenuSelect: function (index) {
       this.currentMenuItem = index === '1' ? OperationType.Expenses : OperationType.Incomes;

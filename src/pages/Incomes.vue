@@ -1,11 +1,11 @@
 <script>
 import { OperationType } from '../stores/FinancialMonitoringStore';
-import FinancialMonitoringExpenses from '../components/FinancialMonitoring/FinancialMonitoringExpenses.vue';
+import FinancialMonitoringTransactions from '../components/FinancialMonitoring/FinancialMonitoringTransactions.vue';
 
 export default {
   name: "Incomes",
   components: {
-    FinancialMonitoringExpenses,
+    FinancialMonitoringTransactions,
   },
   data() {
     return {
@@ -18,7 +18,7 @@ export default {
 </script>
 
 <template>
-  <FinancialMonitoringExpenses :typeOperation="OperationType.Incomes"/>
+  <FinancialMonitoringTransactions :typeOperation="OperationType.Incomes"/>
 </template> 
 
 <style lang="scss">

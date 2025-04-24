@@ -47,7 +47,7 @@ export const OperationType = {
 
 type Category = {
   id: number;
-  userId: string;
+  userId: number;
   name: string;
   operationType: number;
   parentId?: number;
@@ -58,10 +58,10 @@ const baseUrl = 'http://localhost:5124/api';
 
 export const useFinancialMonitoringStore = defineStore('financialMonitoringStore', {
   state: () => ({
-    filtersExpenses: {
-      typeSortExpenses: SortType.ByDateNew,
-      typeFilterExpenses: FilterType.NotSelected,
-      typeGroupExpenses: GroupType.ByDate,
+    filtersTransactions: {
+      typeSortTransactions: SortType.ByDateNew,
+      typeFilterTransactions: FilterType.NotSelected,
+      typeGroupTransactions: GroupType.ByDate,
       selectedFilterCategory: '',
       selectedDate: '',
       activeTab: '',
@@ -73,7 +73,6 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     expenses: [] as Expense[],
     incomes: [] as Expense[],
     categories: new Map<number, Category>(),
-    wallets: [],
   }),
   actions: {
     setPage(page: string, params: object) {
@@ -137,24 +136,11 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
         return null;
       }
     },
-    async fetchWallets() {
-      try {
-        const url = `${baseUrl}/wallets`;
-
-        const response = await axios.get(url);
-        this.wallets = response.data;
-
-        return true;
-      } catch (error) {
-        console.error('Ошибка загрузки кошельков:', error);
-        return null;
-      }
-    },
     // eslint-disable-next-line default-param-last
     async addNote(note: Note = {}, typeOperation: number) {
       try {
         const url = `${baseUrl}/transactions`;
-        const walletId = this.filtersExpenses.currentWalletId;
+        const walletId = this.filtersTransactions.currentWalletId;
         const utcDate = note.date ? new Date(note.date).toISOString() : null;
 
         await axios.post(url, {
@@ -180,9 +166,9 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
         return false;
       }
     },
-    async deleteExpense(id: number, typeOperation: number) {
+    async deleteTransaction(id: number, typeOperation: number) {
       try {
-        const walletId = this.filtersExpenses.currentWalletId;
+        const walletId = this.filtersTransactions.currentWalletId;
 
         await axios.delete(`${baseUrl}/transactions/${id}`);
         await this.fetchNotes(typeOperation, walletId);

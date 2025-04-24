@@ -1,10 +1,10 @@
 <template>
   <div>
     <div class="expenses__card">
-      <el-card class="card-background-color" style="margin-bottom: 15px;">
+      <el-card style="margin-bottom: 15px;">
           <el-row :gutter="20">
             <el-col :span="12">
-              {{ typeGroupExpenses == GroupType.ByDate ? formatDate(group.date) : this.financialMonitoringStore.categories.get(group.items[0].categoryId)?.name }}
+              {{ typeGroupTransactions == GroupType.ByDate ? formatDate(group.date) : this.financialMonitoringStore.categories.get(group.items[0].categoryId)?.name }}
             </el-col>
             <el-col :span="12" style="text-align: right">
               <span :style="{ color: typeOperation === OperationType.Expenses ? 'red' : 'green' }">{{ typeOperation === OperationType.Expenses ? '-' : '+' }}{{ group.items.reduce((sum, item) => sum + item.amount, 0) }}</span>
@@ -13,7 +13,7 @@
 
           <el-row>
             <el-col :span="24">
-              <div v-if="typeGroupExpenses == GroupType.ByCategories">
+              <div v-if="typeGroupTransactions == GroupType.ByCategories">
                 <div style="margin: 5px 0px"></div>
                 <span>{{ group.items.length }} {{ getWordByType(group.items.length) }}</span>
               </div>
@@ -26,7 +26,7 @@
             <el-row :gutter="20" style="margin-top: 15px;">
               <el-col :span="12">
                 <div>
-                  {{ typeGroupExpenses == GroupType.ByDate ? this.financialMonitoringStore.categories.get(item.categoryId)?.name : formatDate(item.date)}}
+                  {{ typeGroupTransactions == GroupType.ByDate ? this.financialMonitoringStore.categories.get(item.categoryId)?.name : formatDate(item.date)}}
                 </div>
                 <span>{{ item.date.split(' ')[1] }}</span>
               </el-col>
@@ -73,7 +73,7 @@ export default {
       type: Object,
       required: true
     },
-    typeGroupExpenses: {
+    typeGroupTransactions: {
       type: Number,
       required: true
     },
@@ -169,20 +169,5 @@ export default {
   width: 415px;
   max-width: 415px;
   max-height: 135px auto;
-}
-
-.description-card {
-  color: grey;
-  width: 350px;
-  max-width: 100%;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  display: block;
-}
-
-.card-background-color {
-  background: linear-gradient(160deg, #6CD0FF, #1C2E4C);
-  color: white;
 }
 </style>

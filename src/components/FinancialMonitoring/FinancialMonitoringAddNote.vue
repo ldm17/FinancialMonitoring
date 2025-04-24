@@ -40,15 +40,16 @@
     <p>Дата</p>
     <el-date-picker style="width: 250px" v-model="datePicker" type="datetime" placeholder="Выберите дату и время" format="YYYY/MM/DD HH:mm" value-format="YYYY/MM/DD HH:mm" time-format="HH:mm"/>
 
-    <p v-if="isDescription">
-      <el-input style="width: 250px" v-model="description" :autosize="{ minRows: 2, maxRows: 4 }" type="textarea" placeholder="Примечание" />
-    </p>
+    <div v-if="isDescription">
+      <p>Примечание</p>
+      <el-input style="width: 250px" v-model="description" :autosize="{ minRows: 2, maxRows: 4 }" type="textarea" placeholder="Введите примечание" />
+    </div>
 
     <p>
       <el-button @click="addDescription()"><el-icon><EditPen /></el-icon></el-button>
       <el-button><el-icon><PictureFilled /></el-icon></el-button>
       <el-button @click="editIsFavorite()"><el-icon><CollectionTag /></el-icon></el-button>
-      <el-button v-if="financialMonitoringStore.pageParams.showDeleteButton" @click="deleteExpense(this.financialMonitoringStore.pageParams.id)"><el-icon><Delete /></el-icon></el-button>
+      <el-button v-if="financialMonitoringStore.pageParams.showDeleteButton" @click="deleteTransaction(this.financialMonitoringStore.pageParams.id)"><el-icon><Delete /></el-icon></el-button>
     </p>
 
     <p>
@@ -166,13 +167,13 @@ export default {
         isIgnoredInCalculation: this.isIgnoredInCalculation,
         isFavorite: this.isFavorite,
         operationType: this.typeOperation,
-        walletId: this.financialMonitoringStore.filtersExpenses.currentWalletId,
+        walletId: this.financialMonitoringStore.filtersTransactions.currentWalletId,
       };
 
       const isSuccsess = await this.financialMonitoringStore.addNote(request, this.typeOperation);
 
       if (isSuccsess) {
-        this.financialMonitoringStore.filtersExpenses.selectedDate = datePicker;
+        this.financialMonitoringStore.filtersTransactions.selectedDate = datePicker;
 
         ElMessage.success('Запись успешно добавлена');
         this.financialMonitoringStore.setPage('expenses', {});
@@ -216,7 +217,7 @@ export default {
         isIgnoredInCalculation: this.isIgnoredInCalculation,
         isFavorite: this.isFavorite,
         operationType: this.typeOperation,
-        walletId: this.financialMonitoringStore.filtersExpenses.currentWalletId,
+        walletId: this.financialMonitoringStore.filtersTransactions.currentWalletId,
       };
 
       const isSuccsess = await this.financialMonitoringStore.editNote(updatedExpense);
@@ -237,7 +238,7 @@ export default {
     editIsFavorite: function () {
       this.isFavorite = !this.isFavorite;
     },
-    deleteExpense: function (id) {
+    deleteTransaction: function (id) {
       ElMessageBox.confirm(
       'Удалить запись ?',
       'Подтвердите действие',
@@ -254,7 +255,7 @@ export default {
           type: 'success',
           message: 'Запись удалена',
         })
-        this.financialMonitoringStore.deleteExpense(id, this.typeOperation);
+        this.financialMonitoringStore.deleteTransaction(id, this.typeOperation);
         this.financialMonitoringStore.setPage('expenses', {});
       })
       .catch(() => {

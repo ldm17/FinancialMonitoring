@@ -6,7 +6,7 @@
           <p style="display: flex; justify-content: space-between; align-items: center;">
             <span>{{ this.financialMonitoringStore.categories.get(item.categoryId)?.name }}</span>
             <span style="display: flex; gap: 1px;">
-              <el-button @click="isFavoriteExpense(item.id)" size="small"><el-icon><CollectionTag /></el-icon></el-button>
+              <el-button @click="isFavoriteTransaction(item.id)" size="small"><el-icon><CollectionTag /></el-icon></el-button>
               <el-button @click="this.financialMonitoringStore.setPage('addNote', {
                 title: 'Редактирование операции', 
                 id: this.financialMonitoringStore.pageParams.id,
@@ -16,7 +16,7 @@
                 size="small">
                 <el-icon><Edit /></el-icon>
               </el-button>
-              <el-button @click="deleteExpense(item.id)" size="small"><el-icon><Delete /></el-icon></el-button>
+              <el-button @click="deleteTransaction(item.id)" size="small"><el-icon><Delete /></el-icon></el-button>
             </span>
           </p>
           <h1>
@@ -82,7 +82,7 @@ export default {
     backToHome: function () {
       this.financialMonitoringStore.setPage('expenses', {});
     },
-    deleteExpense: function (id) {
+    deleteTransaction: function (id) {
       ElMessageBox.confirm(
         'Удалить запись ?',
         'Подтвердите действие',
@@ -99,7 +99,7 @@ export default {
           type: 'success',
           message: 'Запись удалена',
         })
-        this.financialMonitoringStore.deleteExpense(id, this.typeOperation);
+        this.financialMonitoringStore.deleteTransaction(id, this.typeOperation);
         this.financialMonitoringStore.setPage('expenses', {});
       })
       .catch(() => {
@@ -109,7 +109,7 @@ export default {
         })
       })
     },
-    isFavoriteExpense: function (id) {
+    isFavoriteTransaction: function (id) {
       let notesArray = this.typeOperation === OperationType.Expenses ? this.financialMonitoringStore.expenses : this.financialMonitoringStore.incomes;
 
       for (let item of notesArray) {

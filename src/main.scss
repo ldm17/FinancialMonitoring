@@ -16,7 +16,7 @@ body {
 
 .layout-container .el-container > .el-header {
   position: fixed;
-  background-color: #ffffff;
+  // background-color: #ffffff;
   border-bottom: solid 1px var(--el-menu-border-color);
   width: 100%;
   z-index: 100;
@@ -24,7 +24,7 @@ body {
 
 .layout-container .el-aside {
   position: fixed;
-  background-color: #ffffff;
+  // background-color: #ffffff;
   border-right: solid 1px var(--el-menu-border-color);
   height: 100vh;
   z-index: 101;
@@ -65,3 +65,19 @@ body {
   height: 100%;
   right: 20px;
 }
+
+.description-card {
+  color: grey;
+  width: 350px;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+// .material-icons {
+//   vertical-align: middle;
+//   font-size: 20px;
+//   margin-right: 8px;
+// }

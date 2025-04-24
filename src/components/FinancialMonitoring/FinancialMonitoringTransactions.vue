@@ -2,7 +2,7 @@
   <div>
     <div class="toolbar">
     <div>
-      <el-tabs v-model="financialMonitoringStore.filtersExpenses.activeTab">
+      <el-tabs v-model="financialMonitoringStore.filtersTransactions.activeTab">
         <el-tab-pane
           v-for="tab in tabs"
           :key="tab.name"
@@ -13,7 +13,7 @@
     </div>
 
     <div>
-      <el-select v-model="financialMonitoringStore.filtersExpenses.typeSortExpenses" style="width: 200px; margin-right: 15px" :disabled="!filterExpensesByTabs().length">
+      <el-select v-model="financialMonitoringStore.filtersTransactions.typeSortTransactions" style="width: 200px; margin-right: 15px" :disabled="!filterTransactionsByTabs().length">
         <template #prefix>
           <el-icon><Sort /></el-icon>
         </template>
@@ -29,7 +29,7 @@
         </div>
       </el-select>
 
-      <el-select v-model="financialMonitoringStore.filtersExpenses.typeFilterExpenses" style="width: 200px; margin-right: 15px" :disabled="!filterExpensesByTabs().length" @change="checkTypeFilterExpenses()">
+      <el-select v-model="financialMonitoringStore.filtersTransactions.typeFilterTransactions" style="width: 200px; margin-right: 15px" :disabled="!filterTransactionsByTabs().length" @change="checkTypeFilterTransactions()">
         <template #prefix>
           <el-icon><Filter /></el-icon>
         </template>
@@ -64,7 +64,7 @@
         </financial-monitoring-range-filter-modal>
       </div>
 
-      <el-select v-model="financialMonitoringStore.filtersExpenses.typeGroupExpenses" style="width: 200px" :disabled="!filterExpensesByTabs().length">
+      <el-select v-model="financialMonitoringStore.filtersTransactions.typeGroupTransactions" style="width: 200px" :disabled="!filterTransactionsByTabs().length">
         <template #prefix>
           <el-icon><Tickets /></el-icon>
         </template>
@@ -74,12 +74,12 @@
     </div>
 
     <div>
-      <el-select v-model="financialMonitoringStore.filtersExpenses.currentWalletId" style="width: 200px" placeholder="Выберите кошелёк">
+      <el-select v-model="financialMonitoringStore.filtersTransactions.currentWalletId" style="width: 200px" placeholder="Выберите кошелек">
         <template #prefix>
           <el-icon><WalletFilled /></el-icon>
         </template>
         <el-option
-          v-for="wallet in financialMonitoringStore.wallets"
+          v-for="wallet in financialMonitoringStoreWallet.wallets"
           :key="wallet.id"
           :value="wallet.id"
           :label="wallet.name"
@@ -103,26 +103,26 @@
       />
     </div>
 
-    <div class="expenses-main">
-    <div v-if="!expenses().length" style="text-align: center">
+    <div class="transactions-main">
+    <div v-if="!transactions().length" style="text-align: center">
       <el-empty description="Нет данных для отображения" />
     </div>
 
     <div v-else>
-      <p :style="{ color: typeOperation === OperationType.Expenses ? 'red' : 'green', textAlign: 'right' }">{{ typeOperation === OperationType.Expenses ? '-' : '+' }}{{ getSumExpenses() }}</p>
+      <p :style="{ color: typeOperation === OperationType.Expenses ? 'red' : 'green', textAlign: 'right' }">{{ typeOperation === OperationType.Expenses ? '-' : '+' }}{{ getSumTransactions() }}</p>
       <financial-monitoring-card
-        v-for="group in expenses()"
+        v-for="group in transactions()"
         :key="group.id"
         :group="group"
-        :typeGroupExpenses="typeGroupExpenses"
+        :typeGroupTransactions="typeGroupTransactions"
         :formatDate="formatDate"
         :getWordByType="getWordByType"
         :GroupType="GroupType"
         :currentMenuItem="typeOperation"
         @openInfoNote="openInfoNote"
-        @favorite="isFavoriteExpense"
+        @favorite="isFavoriteTransaction"
         @edit="openEditNote"
-        @delete="deleteExpense"
+        @delete="deleteTransaction"
       />
     </div>
   </div>
@@ -131,6 +131,7 @@
 
 <script>
 import { useFinancialMonitoringStore } from "@/stores/FinancialMonitoringStore";
+import { useFinancialMonitoringStoreWallet } from "@/stores/FinancialMonitoringStoreWallet";
 import { format, parse } from "date-fns";
 import FinancialMonitoringRangeFilterModal from "./FinancialMonitoringRangeFilterModal.vue";
 import FinancialMonitoringCategoryList from "./FinancialMonitoringCategoryList.vue";
@@ -154,7 +155,9 @@ export default {
   },
   setup() {
     const financialMonitoringStore = useFinancialMonitoringStore();
-    return { financialMonitoringStore };
+    const financialMonitoringStoreWallet = useFinancialMonitoringStoreWallet();
+
+    return { financialMonitoringStore, financialMonitoringStoreWallet };
   },
   watch: {
     watchedNotesArray: {
@@ -165,24 +168,24 @@ export default {
       deep: true,
     },
     currentWalletId() {
-      this.financialMonitoringStore.fetchNotes(this.typeOperation, this.financialMonitoringStore.filtersExpenses.currentWalletId)
+      this.financialMonitoringStore.fetchNotes(this.typeOperation, this.financialMonitoringStore.filtersTransactions.currentWalletId)
       this.initializeTabs();
       this.removeEmptyTabs();
     },
   },
   async created() {
-    const isSuccessFetchWallets = await this.financialMonitoringStore.fetchWallets();
+    const isSuccessFetchWallets = await this.financialMonitoringStoreWallet.fetchWallets();
     if (isSuccessFetchWallets === null) {
       ElMessage.error('Не удалось загрузить кошельки');
     };
 
-    this.financialMonitoringStore.fetchNotes(this.typeOperation, this.financialMonitoringStore.filtersExpenses.currentWalletId)
+    this.financialMonitoringStore.fetchNotes(this.typeOperation, this.financialMonitoringStore.filtersTransactions.currentWalletId)
       .then(() => {
         this.$nextTick(() => {
           this.removeEmptyTabs();
           if (this.selectedDate) {
             this.setActiveTab(formatDateForTab(this.selectedDate));
-            this.financialMonitoringStore.filtersExpenses.selectedDate = '';
+            this.financialMonitoringStore.filtersTransactions.selectedDate = '';
           } else if (this.activeTab) {
             const currentTab = this.tabs.find(tab => tab.name === this.activeTab);
 
@@ -207,34 +210,34 @@ export default {
       return formatDate(this.dateString);
     },
 
-    typeSortExpenses: function () {
-      return this.financialMonitoringStore.filtersExpenses.typeSortExpenses;
+    typeSortTransactions: function () {
+      return this.financialMonitoringStore.filtersTransactions.typeSortTransactions;
     },
 
-    typeFilterExpenses: function () {
-      return this.financialMonitoringStore.filtersExpenses.typeFilterExpenses;
+    typeFilterTransactions: function () {
+      return this.financialMonitoringStore.filtersTransactions.typeFilterTransactions;
     },
 
-    typeGroupExpenses: function () {
-      return this.financialMonitoringStore.filtersExpenses.typeGroupExpenses;
+    typeGroupTransactions: function () {
+      return this.financialMonitoringStore.filtersTransactions.typeGroupTransactions;
     },
 
     activeTab: function () {
-      return this.financialMonitoringStore.filtersExpenses.activeTab;
+      return this.financialMonitoringStore.filtersTransactions.activeTab;
     },
 
     selectedFilterCategory: function () {
-      return this.financialMonitoringStore.filtersExpenses.selectedFilterCategory;
+      return this.financialMonitoringStore.filtersTransactions.selectedFilterCategory;
     },
 
     selectedDate: function () {
-      return this.financialMonitoringStore.filtersExpenses.selectedDate;
+      return this.financialMonitoringStore.filtersTransactions.selectedDate;
     },
     watchedNotesArray: function () {
       return this.typeOperation === OperationType.Expenses? this.financialMonitoringStore.expenses : this.financialMonitoringStore.incomes;
     },
     currentWalletId: function () {
-      return this.financialMonitoringStore.filtersExpenses.currentWalletId;
+      return this.financialMonitoringStore.filtersTransactions.currentWalletId;
     },
   },
   data() {
@@ -256,9 +259,9 @@ export default {
     };
   },
   methods: {
-    getSumExpenses: function () {
+    getSumTransactions: function () {
       let sum = 0;
-      const itemsArray = this.expenses();
+      const itemsArray = this.transactions();
 
       for (let group of itemsArray) {
         for (let item of group.items) {
@@ -269,43 +272,43 @@ export default {
       }
       return sum
     },
-    checkTypeFilterExpenses: function () {
-      if (this.typeFilterExpenses == FilterType.NotSelected) {
+    checkTypeFilterTransactions: function () {
+      if (this.typeFilterTransactions == FilterType.NotSelected) {
         this.selectedFilterMinAmount = null;
         this.selectedFilterMaxAmount = null;
-        this.financialMonitoringStore.filtersExpenses.selectedFilterCategory = '';
-      } else if (this.typeFilterExpenses == FilterType.ByCategories) {
+        this.financialMonitoringStore.filtersTransactions.selectedFilterCategory = '';
+      } else if (this.typeFilterTransactions == FilterType.ByCategories) {
         this.isCategoryListDialogVisible = true;
-      } else if (this.typeFilterExpenses == FilterType.ByRangeOfAmounts) {
+      } else if (this.typeFilterTransactions == FilterType.ByRangeOfAmounts) {
         this.isFilterByRangeOfAmountsVisible = true;
         this.applyRangeFilter = false;
       }
     },
-    expenses: function () {
-      let itemsArray = this.filterExpensesByTabs();
+    transactions: function () {
+      let itemsArray = this.filterTransactionsByTabs();
 
-      if (this.typeFilterExpenses !== FilterType.NotSelected) {
-        itemsArray = this.filterExpenses();
+      if (this.typeFilterTransactions !== FilterType.NotSelected) {
+        itemsArray = this.filterTransactions();
       }
 
-      const groupedExpenses = this.groupExpenses(itemsArray);
+      const groupedTransactions = this.groupTransactions(itemsArray);
 
-      const result = Object.keys(groupedExpenses).map(key => {
+      const result = Object.keys(groupedTransactions).map(key => {
         return {
-          [this.typeGroupExpenses === GroupType.ByDate ? 'date' : 'categoryId']: key,
-          items: groupedExpenses[key]
+          [this.typeGroupTransactions === GroupType.ByDate ? 'date' : 'categoryId']: key,
+          items: groupedTransactions[key]
         };
       });
 
-      return this.sortExpenses(result);
+      return this.sortTransactions(result);
     },
-    groupExpenses: function (itemsArray) {
+    groupTransactions: function (itemsArray) {
       const grouped = {};
 
       itemsArray.forEach(item => {
         const dateKey = item.date.split(' ')[0];
 
-        const key = this.typeGroupExpenses === GroupType.ByDate ? dateKey : item.categoryId;
+        const key = this.typeGroupTransactions === GroupType.ByDate ? dateKey : item.categoryId;
 
         if (!grouped[key]) {
           grouped[key] = [];
@@ -315,10 +318,10 @@ export default {
 
       return grouped;
     },
-    sortExpenses: function (itemsArray) {
+    sortTransactions: function (itemsArray) {
       if (!itemsArray || itemsArray.length === 0) return itemsArray;
 
-      const groupedExpenses = itemsArray.map(group => {
+      const groupedTransactions = itemsArray.map(group => {
         const totalAmount = group.items.reduce((sum, item) => sum + item.amount, 0);
         return {
           ...group,
@@ -328,55 +331,55 @@ export default {
         };
       });
 
-      groupedExpenses.forEach(group => {
+      groupedTransactions.forEach(group => {
         group.items.sort((a, b) => {
           const dateA = new Date(a.date);
           const dateB = new Date(b.date);
 
-          if (this.typeSortExpenses === SortType.ByDateNew) {
+          if (this.typeSortTransactions === SortType.ByDateNew) {
             return dateB - dateA;
-          } else if (this.typeSortExpenses === SortType.ByDateOld) {
+          } else if (this.typeSortTransactions === SortType.ByDateOld) {
             return dateA - dateB;
-          } else if (this.typeSortExpenses === SortType.ByHighest) {
+          } else if (this.typeSortTransactions === SortType.ByHighest) {
             return b.amount - a.amount;
-          } else if (this.typeSortExpenses === SortType.ByLowest) {
+          } else if (this.typeSortTransactions === SortType.ByLowest) {
             return a.amount - b.amount;
           }
         });
       });
 
-      switch (this.typeSortExpenses) {
+      switch (this.typeSortTransactions) {
         case SortType.ByDateNew:
-          return groupedExpenses.sort((a, b) => b.maxDate - a.maxDate);
+          return groupedTransactions.sort((a, b) => b.maxDate - a.maxDate);
         case SortType.ByDateOld:
-          return groupedExpenses.sort((a, b) => a.minDate - b.minDate);
+          return groupedTransactions.sort((a, b) => a.minDate - b.minDate);
         case SortType.ByHighest:
-          return groupedExpenses.sort((a, b) => b.totalAmount - a.totalAmount);
+          return groupedTransactions.sort((a, b) => b.totalAmount - a.totalAmount);
         case SortType.ByLowest:
-          return groupedExpenses.sort((a, b) => a.totalAmount - b.totalAmount);
+          return groupedTransactions.sort((a, b) => a.totalAmount - b.totalAmount);
         default:
-          return groupedExpenses;
+          return groupedTransactions;
       }
     },
-    filterExpenses: function () {
-      let itemsArray = this.filterExpensesByTabs();
+    filterTransactions: function () {
+      let itemsArray = this.filterTransactionsByTabs();
 
       if (this.selectedFilterCategory) {
         itemsArray = itemsArray.filter(item => this.financialMonitoringStore.categories.get(item.categoryId)?.name === this.selectedFilterCategory);
-      } else if (this.typeFilterExpenses == FilterType.ByRangeOfAmounts && this.applyRangeFilter) {
+      } else if (this.typeFilterTransactions == FilterType.ByRangeOfAmounts && this.applyRangeFilter) {
         itemsArray = itemsArray.filter(item => {
           const amount = item.amount;
           return amount >= this.selectedFilterMinAmount && amount <= this.selectedFilterMaxAmount
         });
-      } else if (this.typeFilterExpenses == FilterType.ByIgnoredInCalculation) {
+      } else if (this.typeFilterTransactions == FilterType.ByIgnoredInCalculation) {
         itemsArray = itemsArray.filter(item => item.isIgnoredInCalculation);
-      } else if (this.typeFilterExpenses == FilterType.ByFavorite) {
+      } else if (this.typeFilterTransactions == FilterType.ByFavorite) {
         itemsArray = itemsArray.filter(item => item.isFavorite);
       }
 
       return itemsArray;
     },
-    filterExpensesByTabs: function () {
+    filterTransactionsByTabs: function () {
       let itemsArray = [];
 
       if (this.activeTab.match(/^\d{2}\/\d{4}$/)) {
@@ -441,7 +444,7 @@ export default {
         ...dynamicTabs
       ];
     },
-    isFavoriteExpense: function (id) {
+    isFavoriteTransaction: function (id) {
       let notesArray = this.typeOperation === OperationType.Expenses ? this.financialMonitoringStore.expenses : this.financialMonitoringStore.incomes;
 
       for (let item of notesArray) {
@@ -451,9 +454,9 @@ export default {
         }
       }
     },
-    async deleteExpense(id) {
+    async deleteTransaction(id) {
       try {
-        await this.financialMonitoringStore.deleteExpense(id, this.typeOperation);
+        await this.financialMonitoringStore.deleteTransaction(id, this.typeOperation);
         this.removeEmptyTabs();
       } catch (error) {
         console.error('Ошибка при удалении:', error);
@@ -478,12 +481,12 @@ export default {
       this.applyRangeFilter = true;
     },
     onCategorySelected: function (category) {
-      this.financialMonitoringStore.filtersExpenses.selectedFilterCategory = category.label;
+      this.financialMonitoringStore.filtersTransactions.selectedFilterCategory = category.label;
       this.isCategoryListDialogVisible = false;
     },
     handleClose: function () {
       this.isFilterByRangeOfAmountsVisible = false;
-      this.financialMonitoringStore.filtersExpenses.typeFilterExpenses = FilterType.NotSelected;
+      this.financialMonitoringStore.filtersTransactions.typeFilterTransactions = FilterType.NotSelected;
     },
     getWordByType: function (count) {
       const words = {
@@ -520,7 +523,7 @@ export default {
       }
     },
     setActiveTab(key) {
-      this.financialMonitoringStore.filtersExpenses.activeTab = key;
+      this.financialMonitoringStore.filtersTransactions.activeTab = key;
     },
   },
 };
@@ -550,7 +553,7 @@ export default {
   justify-content: center;
 }
 
-.expenses-main {
+.transactions-main {
   display: flex;
   align-items: center;
   justify-content: center;

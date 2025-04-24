@@ -1,11 +1,15 @@
 <template>
   <el-config-provider :locale="locale">
-    <financialMonitoring />
+    <div>
+      <theme-switcher class="theme-switcher" />
+      <financial-monitoring />
+    </div>
   </el-config-provider>
 </template>
 
 <script>
 import FinancialMonitoring from './components/FinancialMonitoring/FinancialMonitoring.vue';
+import ThemeSwitcher from './components/FinancialMonitoring/ThemeSwitcher.vue';
 
 import { ElConfigProvider } from 'element-plus';
 import ru from 'element-plus/es/locale/lang/ru';
@@ -19,6 +23,7 @@ export default {
   components: {
     FinancialMonitoring,
     ElConfigProvider,
+    ThemeSwitcher,
   },
   created() {
     dayjs.locale('ru');
@@ -33,4 +38,10 @@ export default {
 };
 </script>
 <style lang="scss">
+.theme-switcher {
+  position: fixed;
+  top: 20px;
+  right: 150px;
+  z-index: 1000;
+}
 </style>
