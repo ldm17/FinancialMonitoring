@@ -13,6 +13,8 @@ import Expenses from './pages/Expenses.vue';
 import Incomes from './pages/Incomes.vue';
 import WalletList from './pages/WalletList.vue';
 import WalletEdit from './pages/WalletEdit.vue';
+import CategoryList from './pages/CategoryList.vue';
+import CategoryEdit from './pages/CategoryEdit.vue';
 
 const router = createRouter({
   history: createWebHistory(),
@@ -42,6 +44,19 @@ const router = createRouter({
     path: '/settings/wallets/:action/:id?',
     component: WalletEdit,
     props: true,
+  },
+  {
+    name: 'category-list-settings',
+    path: '/settings/categories/',
+    component: CategoryList,
+    children: [
+      {
+        name: 'category-edit-settings',
+        path: '/settings/categories/:type/:action/:id?',
+        component: CategoryEdit,
+        props: true,
+      },
+    ],
   }]
 });
 

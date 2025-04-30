@@ -19,15 +19,14 @@
     <div v-if="action === 'new'">
       <p>
         <el-button @click="backToWallets()">Назад</el-button>
-        <el-button type="primary" @click="handleAddWallet(name, balance, currency, description)"
-          :disabled="checkFieldsAddWallet()">Добавить</el-button>
+        <el-button type="primary" @click="handleAddWallet()" :disabled="checkFieldsWallet()">Добавить</el-button>
       </p>
     </div>
 
     <div v-if="action === 'edit'">
       <p>
         <el-button @click="backToWallets()">Назад</el-button>
-        <el-button type="primary" @click="handleEditWallet()" :disabled="checkFieldsAddWallet()">Сохранить</el-button>
+        <el-button type="primary" @click="handleEditWallet()" :disabled="checkFieldsWallet()">Сохранить</el-button>
       </p>
     </div>
   </div>
@@ -63,16 +62,16 @@ export default {
     backToWallets: function () {
       this.$router.back();
     },
-    checkFieldsAddWallet: function () {
+    checkFieldsWallet: function () {
       return !this.name || !this.balance || !this.currency ? true : false;
     },
-    async handleAddWallet (name, balance, currency, description) {
+    async handleAddWallet () {
       const request = {
         userId: this.userId,
-        name: name,
-        balance: parseFloat(balance),
-        currency: currency,
-        description: description,
+        name: this.name,
+        balance: parseFloat(this.balance),
+        currency: this.currency,
+        description: this.description,
       };
 
       const isSuccsess = await this.financialMonitoringStoreWallet.addWallet(request);

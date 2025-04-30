@@ -29,6 +29,13 @@
                     <span>Кошельки</span>
                   </router-link>
                 </el-menu-item>
+
+                <el-menu-item index="3-2">
+                  <router-link :to="{ name: 'category-list-settings' }" class="router-link-aside">
+                    <span>Категории</span>
+                  </router-link>
+                </el-menu-item>
+
               </el-menu-item-group>
             </el-sub-menu>
           </el-menu-item-group>
@@ -39,9 +46,10 @@
         <el-header style="text-align: right; font-size: 15px; height: 70px;">
           <div class="header">
             <el-button
-              v-if="financialMonitoringStore.currentPage !== 'addNote' && $route.name !== 'wallet-list-settings'"
+              v-if="financialMonitoringStore.currentPage !== 'addNote' && $route.name !== 'wallet-list-settings' && $route.name !== 'category-list-settings'"
               type="primary" :icon="Icons.Plus" @click="openAddExpense()">Добавить</el-button>
             <el-button v-if="$route.name === 'wallet-list-settings'" type="primary" :icon="Icons.Plus" @click="openAddWallet()">Добавить</el-button>
+            <el-button v-if="$route.name === 'category-list-settings'" type="primary" :icon="Icons.Plus" @click="openAddCategory()">Добавить</el-button>
           </div>
         </el-header>
 
@@ -109,6 +117,10 @@ export default {
     },
     openAddWallet: function () {
       this.$router.push({ name: 'wallet-edit-settings', params: { action: 'new' } });
+    },
+    openAddCategory: function () {
+      const selectedType = this.financialMonitoringStore.selectedOperationTypeCategories;
+      this.$router.push({ name: 'category-edit-settings', params: { type: selectedType, action: 'new' } });
     },
     handleMenuSelect: function (index) {
       this.currentMenuItem = index === '1' ? OperationType.Expenses : OperationType.Incomes;

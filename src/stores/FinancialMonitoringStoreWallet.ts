@@ -28,7 +28,6 @@ export const useFinancialMonitoringStoreWallet = defineStore('financialMonitorin
         const url = `${baseUrl}/wallets`;
 
         const response = await axios.get<Wallet[]>(url);
-        // this.wallets = response.data;
 
         this.wallets = response.data.map((wallet) => ({
           id: wallet.id,

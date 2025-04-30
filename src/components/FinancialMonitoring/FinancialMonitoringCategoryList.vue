@@ -9,7 +9,8 @@
         :props="defaultProps"
         @node-click="handleNodeClick"
         :expand-on-click-node="false"
-      />
+      >
+      </el-tree>
     </el-scrollbar>
   </div>
 </template>
@@ -29,6 +30,14 @@ export default {
     const financialMonitoringStore = useFinancialMonitoringStore();
     return { financialMonitoringStore };
   },
+  async created() {
+    await this.loadCategories(this.typeOperation);
+  },
+  watch: {
+    typeOperation(newTypeOperation) {
+      this.loadCategories(newTypeOperation);
+    },
+  },
   data() {
     return {
       defaultProps: {
@@ -38,14 +47,16 @@ export default {
       OperationType,
     };
   },
-  async created() {
-    const isSuccessFetchCategories = await this.financialMonitoringStore.fetchCategories(this.typeOperation);
-
-    if (isSuccessFetchCategories === null) {
-      ElMessage.error('Не удалось загрузить категории');
-    };
-  },
   methods: {
+    async loadCategories(typeOperation) {
+      const isSuccessFetchCategories = await this.financialMonitoringStore.fetchCategories(typeOperation);
+
+      if (isSuccessFetchCategories === null) {
+        ElMessage.error('Не удалось загрузить категории');
+      } else {
+        this.getCategoryList();
+      }
+    },
     handleNodeClick: function (data) {
       const categoryLabel = this.financialMonitoringStore.categories.get(data.id)?.name;
       this.$emit('category-selected', { id: data.id, label: categoryLabel });

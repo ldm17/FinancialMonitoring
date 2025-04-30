@@ -73,6 +73,7 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     expenses: [] as Expense[],
     incomes: [] as Expense[],
     categories: new Map<number, Category>(),
+    selectedOperationTypeCategories: OperationType.Expenses,
   }),
   actions: {
     setPage(page: string, params: object) {
@@ -120,22 +121,6 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
         return null;
       }
     },
-    async fetchCategories(typeOperation: number) {
-      try {
-        const url = `${baseUrl}/categories`;
-
-        const response = await axios.get<Category[]>(url);
-
-        const filteredCategories = response.data.filter((category) => category.operationType === typeOperation);
-
-        this.categories = this.buildCategoryTree(filteredCategories);
-
-        return true;
-      } catch (error) {
-        console.error('Ошибка при загрузке категорий:', error);
-        return null;
-      }
-    },
     // eslint-disable-next-line default-param-last
     async addNote(note: Note = {}, typeOperation: number) {
       try {
@@ -176,6 +161,14 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
         console.error('Ошибка при удалении записи:', error);
       }
     },
+    getItemsByRangeDate(typeOperation: number, startDate: Date, endDate: Date) {
+      const notesArray = typeOperation === OperationType.Expenses ? this.expenses : this.incomes;
+      const itemsArray = notesArray.filter((item: { date: string }) => {
+        const date = new Date(item.date);
+        return date >= startDate && date <= endDate;
+      });
+      return itemsArray;
+    },
     buildCategoryTree(categories: Category[]): Map<number, Category> {
       const categoryById: Map<number, Category> = new Map();
 
@@ -201,13 +194,79 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
 
       return categoryById;
     },
-    getItemsByRangeDate(typeOperation: number, startDate: Date, endDate: Date) {
-      const notesArray = typeOperation === OperationType.Expenses ? this.expenses : this.incomes;
-      const itemsArray = notesArray.filter((item: { date: string }) => {
-        const date = new Date(item.date);
-        return date >= startDate && date <= endDate;
-      });
-      return itemsArray;
+    async fetchCategories(typeOperation: number) {
+      try {
+        const url = `${baseUrl}/categories`;
+
+        const response = await axios.get<Category[]>(url);
+
+        const filteredCategories = response.data.filter((category) => category.operationType === typeOperation);
+
+        this.categories = this.buildCategoryTree(filteredCategories);
+
+        return true;
+      } catch (error) {
+        console.error('Ошибка при загрузке категорий:', error);
+        return null;
+      }
+    },
+    async fetchCategory(id: number) {
+      try {
+        const url = `${baseUrl}/categories/${id}`;
+        const response = await axios.get(url);
+
+        return response.data;
+      } catch (error) {
+        console.error('Ошибка при загрузке категории:', error);
+        return null;
+      }
+    },
+    async addCategory(newCategory: any) {
+      try {
+        const url = `${baseUrl}/categories`;
+        const response = await axios.post<Category>(url, newCategory);
+
+        const createdCategory = response.data;
+
+        this.categories.set(createdCategory.id, { ...createdCategory, children: [] });
+
+        if (createdCategory.parentId) {
+          const parentCategory = this.categories.get(createdCategory.parentId);
+          if (parentCategory && parentCategory.children) {
+            parentCategory.children.push(createdCategory);
+          }
+        }
+
+        return createdCategory;
+      } catch (error) {
+        console.error('Ошибка при добавлении категории:', error);
+        return null;
+      }
+    },
+    async editCategory(updatedCategory: any) {
+      try {
+        const url = `${baseUrl}/categories/${updatedCategory.id}`;
+        await axios.put(url, updatedCategory);
+
+        return true;
+      } catch (error) {
+        console.error('Ошибка при редактировании категории:', error);
+        return false;
+      }
+    },
+    async deleteCategory(id: number, typeOperation: number) {
+      try {
+        await axios.delete(`${baseUrl}/categories/${id}`);
+        await this.fetchCategories(typeOperation);
+
+        return true;
+      } catch (error) {
+        console.error('Ошибка при удалении категории:', error);
+        return false;
+      }
+    },
+    setSelectedOperationTypeCategories(type: number) {
+      this.selectedOperationTypeCategories = type;
     },
   },
 });
