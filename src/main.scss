@@ -1,6 +1,7 @@
+$header-height: 70px;
+
 * {
   box-sizing: border-box;
-  // font-family: "Open Sans", sans-serif;
   font-family: "Inter", sans-serif;
   font-optical-sizing: auto;
   font-weight: 300;
@@ -14,9 +15,17 @@ body {
   padding: 0;
 }
 
+.app-name {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  margin: 0;
+  margin-left: 25px;
+  height: $header-height;
+}
+
 .layout-container .el-container > .el-header {
   position: fixed;
-  // background-color: #ffffff;
   border-bottom: solid 1px var(--el-menu-border-color);
   width: 100%;
   z-index: 100;
@@ -24,7 +33,6 @@ body {
 
 .layout-container .el-aside {
   position: fixed;
-  // background-color: #ffffff;
   border-right: solid 1px var(--el-menu-border-color);
   height: 100vh;
   z-index: 101;
@@ -76,8 +84,27 @@ body {
   display: block;
 }
 
-// .material-icons {
-//   vertical-align: middle;
-//   font-size: 20px;
-//   margin-right: 8px;
-// }
+.layout-container .authentication-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+}
+
+.blurred-header {
+  background-color: rgba(255, 255, 255, 0.6);
+  height: $header-height;
+  text-align: right;
+  font-size: 15px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px); /* Для Safari */
+  transition: background-color 0.3s ease;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+html.dark .blurred-header {
+  background-color: rgba(20, 20, 20, 0.8);
+}

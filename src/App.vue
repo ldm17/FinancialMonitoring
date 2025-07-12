@@ -1,8 +1,8 @@
 <template>
   <el-config-provider :locale="locale">
     <div>
-      <theme-switcher class="theme-switcher" />
-      <financial-monitoring />
+       <theme-switcher v-show="this.$route.name === 'FinancialMonitoring'" />
+       <router-view />
     </div>
   </el-config-provider>
 </template>
@@ -23,7 +23,7 @@ export default {
   components: {
     FinancialMonitoring,
     ElConfigProvider,
-    ThemeSwitcher,
+    ThemeSwitcher
   },
   created() {
     dayjs.locale('ru');
@@ -38,10 +38,4 @@ export default {
 };
 </script>
 <style lang="scss">
-.theme-switcher {
-  position: fixed;
-  top: 20px;
-  right: 150px;
-  z-index: 1000;
-}
 </style>

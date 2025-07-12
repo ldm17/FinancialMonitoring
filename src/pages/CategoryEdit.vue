@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="category-edit-container">
-      <el-dialog v-if="$route.name === 'category-edit-settings'"
+      <el-dialog
         v-model="isCategoryEditDialogVisible"
         :title="dialogTitle"
         width="500"
@@ -15,7 +15,7 @@
             <el-input style="width: 250px" v-model="name" placeholder="Введите название категории" clearable />
           </div>
 
-          <div v-if="action !== 'edit'" class="form-group">
+          <div v-if="isAddCategory" class="form-group">
             <label>Тип категории</label>
             <el-select v-model="typeOperation" style="width: 250px">
               <el-option :value="OperationType.Expenses" label="Расход"></el-option>
@@ -28,20 +28,20 @@
           </div>
           
           <div v-if="isChildren" class="form-group">
-            <label>Выберите родительскую категорию</label>
-            <el-input class="custom-el-input" style="width: 250px" v-model="parentCategoryName" @click="openCategoryModal()" placeholder="Родительская категория" readonly>
+            <label>Родительская категория</label>
+            <el-input class="custom-el-input" style="width: 250px" v-model="parentCategoryName" @click="openCategoryModal()" placeholder="Выберите род. категорию" readonly>
               <template #suffix>
                 <el-icon><ArrowDown /></el-icon>
               </template>
             </el-input>
           </div>
 
-          <div v-if="action === 'new'" class="category-edit-button-container">
+          <div v-if="isAddCategory" class="category-edit-button-container">
             <el-button @click="backToCategories()">Назад</el-button>
             <el-button type="primary" @click="handleAddCategory()" :disabled="checkFieldsCategory()">Добавить</el-button>
           </div>
 
-          <div v-if="action === 'edit'" class="category-edit-button-container">
+          <div v-if="isEditCategory" class="category-edit-button-container">
               <el-button @click="backToCategories()">Назад</el-button>
               <el-button type="primary" @click="handleEditCategory()" :disabled="checkFieldsCategory()">Сохранить</el-button>
           </div>
@@ -62,6 +62,7 @@
 
 <script>
 import { OperationType, useFinancialMonitoringStore } from '@/stores/FinancialMonitoringStore';
+import { useAuthenticationStore } from '@/stores/AuthenticationStore';
 import { ElMessage } from 'element-plus';
 import FinancialMonitoringCategoryList from '@/components/FinancialMonitoring/FinancialMonitoringCategoryList.vue';
 
@@ -69,35 +70,48 @@ export default {
   name: "category-edit-settings",
   setup() {
     const financialMonitoringStore = useFinancialMonitoringStore();
-    return { financialMonitoringStore };
+    const authenticationStore = useAuthenticationStore();
+    return { financialMonitoringStore, authenticationStore };
   },
   components: {
     FinancialMonitoringCategoryList,
   },
-  props: ['type', 'action', 'id'],
+  props: {
+    isAddCategory: {
+      type: Boolean,
+      required: false,
+    },
+    isEditCategory: {
+      type: Boolean,
+      required: false,
+    },
+    categoryIdToEdit: {
+      type: Number,
+      required: false,
+    },
+  },
   watch: {
     isChildren(newVal) {
       if (!newVal) {
         this.parentId = null;
         this.parentCategoryName = '';
       }
-    }
+    },
   },
   async created() {
-    this.typeOperation = Number(this.type) || this.financialMonitoringStore.selectedOperationTypeCategories;
+    this.typeOperation = this.financialMonitoringStore.selectedOperationTypeCategories;
 
-    if (this.action === 'edit') {
-      await this.getCategory(this.$route.params.id);
+    if (this.isEditCategory) {
+      await this.getCategory(this.categoryIdToEdit);
     }
   },
   computed: {
     dialogTitle: function () {
-      return this.action === 'new' ? 'Добавление новой категории' : 'Редактирование категории';
+      return this.isAddCategory ? 'Добавление новой категории' : 'Редактирование категории';
     }
   },
   data() {
     return {
-      userId: 0,
       name: '',
       typeOperation: OperationType.Expenses,
       isChildren: false,
@@ -111,7 +125,7 @@ export default {
   },
   methods: {
     backToCategories: function () {
-      this.$router.back();
+      this.$emit('close');
     },
     checkFieldsCategory: function () {
       if (this.isChildren && !this.parentCategoryName) {
@@ -122,7 +136,7 @@ export default {
     },
     async handleAddCategory () {
       const newCategory = {
-        userId: this.userId,
+        userId: this.authenticationStore.user.userId,
         name: this.name,
         operationType: this.typeOperation,
         parentId: this.isChildren ? this.parentId : null,
@@ -133,7 +147,7 @@ export default {
       if (isSuccsess) {
         ElMessage.success('Категория успешно добавлена');
         this.$emit('category-added', this.typeOperation);
-        this.$router.back();
+        this.$emit('close');
         await this.financialMonitoringStore.fetchCategories(this.typeOperation);
       } else {
         ElMessage.error('Не удалось добавить категорию');
@@ -141,8 +155,8 @@ export default {
     },
     async handleEditCategory () {
       const updatedCategory = {
-        id: this.$route.params.id,
-        userId: this.userId,
+        id: this.categoryIdToEdit,
+        userId: this.authenticationStore.user.userId,
         name: this.name,
         parentId: this.parentId,
       };
@@ -151,7 +165,7 @@ export default {
 
       if (isSuccsess) {
         ElMessage.success('Категория успешно обновлена');
-        this.$router.push({ name: 'category-list-settings' });
+        this.$emit('close');
         this.financialMonitoringStore.fetchCategories(this.typeOperation);
       } else {
         ElMessage.error('Не удалось обновить категорию');

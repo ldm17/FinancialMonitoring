@@ -2,22 +2,24 @@
   <div class="layout-container">
     <el-container style="height: 100%">
       <el-backtop :right="100" :bottom="100" />
-      <el-aside width="250px">
-        <h1 style="margin-left: 25px;">Financial</h1>
-        <el-menu default-active="1" @select="handleMenuSelect">
+      <el-aside width="250px" style="display: flex; flex-direction: column; height: 100%;">
+        <h1 class="app-name">Financial</h1>
+        <el-menu :default-active="activeMenuItem" style="flex: 1;" @select="handleMenuSelect">
           <el-menu-item-group>
             <el-menu-item index="1">
-              <router-link :to="{ name: 'expenses' }" class="router-link-aside">
+              <router-link :to="{ name: 'expenses', query: { walletId: financialMonitoringStore.filtersTransactions.currentWalletId } }" class="router-link-aside">
                 <el-icon><ShoppingCart /></el-icon>
                 <span>Расходы</span>
               </router-link>
             </el-menu-item>
+
             <el-menu-item index="2">
-              <router-link :to="{ name: 'incomes' }" class="router-link-aside">
+              <router-link :to="{ name: 'incomes', query: { walletId: financialMonitoringStore.filtersTransactions.currentWalletId } }" class="router-link-aside">
                 <el-icon><Coin /></el-icon>
                 <span>Доходы</span>
               </router-link>
             </el-menu-item>
+
             <el-sub-menu index="3">
               <template #title>
                 <el-icon><Setting /></el-icon>
@@ -35,46 +37,44 @@
                     <span>Категории</span>
                   </router-link>
                 </el-menu-item>
-
               </el-menu-item-group>
             </el-sub-menu>
           </el-menu-item-group>
         </el-menu>
+
+        <el-menu>
+          <el-menu-item @click="confirmLogout()">
+              <el-icon><SwitchButton /></el-icon>
+              <span>Выйти</span>
+          </el-menu-item>
+        </el-menu>
       </el-aside>
 
       <el-container>
-        <el-header style="text-align: right; font-size: 15px; height: 70px;">
+        <el-header class="blurred-header">
           <div class="header">
+            <theme-switcher style="right: 15px;" />
             <el-button
               v-if="financialMonitoringStore.currentPage !== 'addNote' && $route.name !== 'wallet-list-settings' && $route.name !== 'category-list-settings'"
               type="primary" :icon="Icons.Plus" @click="openAddExpense()">Добавить</el-button>
+
             <el-button v-if="$route.name === 'wallet-list-settings'" type="primary" :icon="Icons.Plus" @click="openAddWallet()">Добавить</el-button>
-            <el-button v-if="$route.name === 'category-list-settings'" type="primary" :icon="Icons.Plus" @click="openAddCategory()">Добавить</el-button>
+            
+            <el-button v-if="$route.name === 'category-list-settings'" type="primary" :icon="Icons.Plus" @click="isCategoryAddModalVisible = true">Добавить</el-button>
           </div>
         </el-header>
 
         <el-main>
           <el-scrollbar>
-            <div v-if="financialMonitoringStore.currentPage == 'expenses'">
-              <RouterView />
-            </div>
+            <RouterView />
 
-            <div v-if="financialMonitoringStore.currentPage === 'addNote'">
-              <financial-monitoring-add-note 
-              :currentMenuItem="currentMenuItem">
-              </financial-monitoring-add-note>
-            </div>
+            <category-edit
+              v-if="isCategoryAddModalVisible"
+              :isAddCategory="true"
+              @close="isCategoryAddModalVisible = false"
+            >
+            </category-edit>
 
-            <div v-if="financialMonitoringStore.currentPage === 'rangeFilter'">
-              <financial-monitoring-range-filter-modal>
-              </financial-monitoring-range-filter-modal>
-            </div>
-
-            <div v-if="financialMonitoringStore.currentPage === 'infoNote'">
-              <financial-monitoring-info-note 
-              :currentMenuItem="currentMenuItem">
-              </financial-monitoring-info-note>
-            </div>
           </el-scrollbar>
         </el-main>
       </el-container>
@@ -89,7 +89,11 @@ import FinancialMonitoringTransactions from './FinancialMonitoringTransactions.v
 import FinancialMonitoringAddNote from './FinancialMonitoringAddNote.vue';
 import FinancialMonitoringRangeFilterModal from './FinancialMonitoringRangeFilterModal.vue';
 import FinancialMonitoringInfoNote from './FinancialMonitoringInfoNote.vue';
+import CategoryEdit from '@/pages/CategoryEdit.vue';
 import { OperationType } from '@/stores/FinancialMonitoringStore';
+import { useAuthenticationStore } from '@/stores/AuthenticationStore';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import ThemeSwitcher from './ThemeSwitcher.vue';
 
 export default {
   name: "financial-monitoring",
@@ -98,32 +102,71 @@ export default {
     FinancialMonitoringAddNote,
     FinancialMonitoringRangeFilterModal,
     FinancialMonitoringInfoNote,
+    CategoryEdit,
+    ThemeSwitcher,
   },
   setup() {
     const financialMonitoringStore = useFinancialMonitoringStore();
-    return { financialMonitoringStore };
+    const authenticationStore = useAuthenticationStore();
+
+    return { financialMonitoringStore, authenticationStore };
+  },
+  watch: {
+    '$route.name'(newRouteName) {
+      if (newRouteName === 'expenses' || newRouteName === 'incomes') {
+        this.currentMenuItem = newRouteName === 'expenses' ? OperationType.Expenses : OperationType.Incomes;
+      }
+    },
+  },
+  computed: {
+    activeMenuItem() {
+      return this.currentMenuItem === OperationType.Expenses ? '1' : '2';
+    },
   },
   data() {
     return {
       Icons,
       currentMenuItem: OperationType.Expenses,
+      isCategoryAddModalVisible: false,
     };
   },
   methods: {
     openAddExpense: function () {
-      this.financialMonitoringStore.setPage('addNote', {
-        title: 'Добавление операции',
-      });
+      const type = this.currentMenuItem === OperationType.Expenses ? 'expense' : 'income';
+      this.$router.push({ name: 'add-note', params: { type: type, action: 'new' }, query: { currentMenuItem: this.currentMenuItem, walletId: this.financialMonitoringStore.filtersTransactions.currentWalletId } });
     },
     openAddWallet: function () {
       this.$router.push({ name: 'wallet-edit-settings', params: { action: 'new' } });
     },
-    openAddCategory: function () {
-      const selectedType = this.financialMonitoringStore.selectedOperationTypeCategories;
-      this.$router.push({ name: 'category-edit-settings', params: { type: selectedType, action: 'new' } });
-    },
     handleMenuSelect: function (index) {
       this.currentMenuItem = index === '1' ? OperationType.Expenses : OperationType.Incomes;
+    },
+    confirmLogout: function () {
+      ElMessageBox.confirm(
+      'Выйти из аккаунта ?',
+      'Подтвердите действие',
+      {
+        confirmButtonText: 'Выйти',
+        cancelButtonText: 'Отменить',
+        type: 'warning',
+        center: true,
+        draggable: true,
+      }
+    )
+      .then(async () => {
+        await this.authenticationStore.logout();
+        ElMessage({
+          type: 'success',
+          message: 'Вы вышли из аккаунта',
+        });
+        this.$router.push({ name: 'login' });
+      })
+      .catch(() => {
+        ElMessage({
+          type: 'info',
+          message: 'Выход отменён',
+        })
+      })
     },
   },
 };

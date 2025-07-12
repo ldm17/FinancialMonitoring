@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
 import { format, parseISO } from 'date-fns';
+// eslint-disable-next-line import/extensions, import/no-unresolved
+import ApiClient from '@/api/ApiClient';
 
 interface Expense {
   id: number;
@@ -54,8 +56,6 @@ type Category = {
   children?: Category[];
 };
 
-const baseUrl = 'http://localhost:5124/api';
-
 export const useFinancialMonitoringStore = defineStore('financialMonitoringStore', {
   state: () => ({
     filtersTransactions: {
@@ -67,7 +67,6 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
       activeTab: '',
       currentWalletId: 0,
     },
-    currentPage: 'expenses',
     currentPageTitle: '',
     pageParams: {},
     expenses: [] as Expense[],
@@ -77,7 +76,6 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
   }),
   actions: {
     setPage(page: string, params: object) {
-      this.currentPage = page;
       this.currentPageTitle = page;
       this.pageParams = params;
     },
@@ -89,10 +87,10 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     },
     async fetchNotes(typeOperation: number, currentWalletId: number) {
       try {
-        const url = `${baseUrl}/transactions?operationType=${typeOperation}&walletId=${currentWalletId}`;
+        const url = `/transactions?operationType=${typeOperation}&walletId=${currentWalletId}`;
         const notesArray = typeOperation === OperationType.Expenses ? 'expenses' : 'incomes';
 
-        const response = await axios.get<Expense[]>(url);
+        const response = await ApiClient.get<Expense[]>(url);
 
         this[notesArray] = response.data.map((note) => ({
           id: note.id,
@@ -112,8 +110,8 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     },
     async fetchNote(id: number) {
       try {
-        const url = `${baseUrl}/transactions/${id}`;
-        const response = await axios.get(url);
+        const url = `/transactions/${id}`;
+        const response = await ApiClient.get(url);
 
         return response.data;
       } catch (error) {
@@ -124,11 +122,11 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     // eslint-disable-next-line default-param-last
     async addNote(note: Note = {}, typeOperation: number) {
       try {
-        const url = `${baseUrl}/transactions`;
+        const url = '/transactions';
         const walletId = this.filtersTransactions.currentWalletId;
         const utcDate = note.date ? new Date(note.date).toISOString() : null;
 
-        await axios.post(url, {
+        await ApiClient.post(url, {
           ...note,
           date: utcDate,
         });
@@ -142,8 +140,8 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     },
     async editNote(updatedExpense: any) {
       try {
-        const url = `${baseUrl}/transactions/${updatedExpense.id}`;
-        await axios.put(url, updatedExpense);
+        const url = `/transactions/${updatedExpense.id}`;
+        await ApiClient.put(url, updatedExpense);
 
         return true;
       } catch (error) {
@@ -155,7 +153,7 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
       try {
         const walletId = this.filtersTransactions.currentWalletId;
 
-        await axios.delete(`${baseUrl}/transactions/${id}`);
+        await ApiClient.delete(`/transactions/${id}`);
         await this.fetchNotes(typeOperation, walletId);
       } catch (error) {
         console.error('Ошибка при удалении записи:', error);
@@ -196,9 +194,9 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     },
     async fetchCategories(typeOperation: number) {
       try {
-        const url = `${baseUrl}/categories`;
+        const url = '/categories';
 
-        const response = await axios.get<Category[]>(url);
+        const response = await ApiClient.get<Category[]>(url);
 
         const filteredCategories = response.data.filter((category) => category.operationType === typeOperation);
 
@@ -212,8 +210,8 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     },
     async fetchCategory(id: number) {
       try {
-        const url = `${baseUrl}/categories/${id}`;
-        const response = await axios.get(url);
+        const url = `/categories/${id}`;
+        const response = await ApiClient.get(url);
 
         return response.data;
       } catch (error) {
@@ -223,8 +221,9 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     },
     async addCategory(newCategory: any) {
       try {
-        const url = `${baseUrl}/categories`;
-        const response = await axios.post<Category>(url, newCategory);
+        const url = '/categories';
+
+        const response = await ApiClient.post<Category>(url, newCategory);
 
         const createdCategory = response.data;
 
@@ -245,8 +244,8 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     },
     async editCategory(updatedCategory: any) {
       try {
-        const url = `${baseUrl}/categories/${updatedCategory.id}`;
-        await axios.put(url, updatedCategory);
+        const url = `/categories/${updatedCategory.id}`;
+        await ApiClient.put(url, updatedCategory);
 
         return true;
       } catch (error) {
@@ -256,7 +255,7 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     },
     async deleteCategory(id: number, typeOperation: number) {
       try {
-        await axios.delete(`${baseUrl}/categories/${id}`);
+        await ApiClient.delete(`/categories/${id}`);
         await this.fetchCategories(typeOperation);
 
         return true;
@@ -267,6 +266,7 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     },
     setSelectedOperationTypeCategories(type: number) {
       this.selectedOperationTypeCategories = type;
+      console.log(this.selectedOperationTypeCategories);
     },
   },
 });

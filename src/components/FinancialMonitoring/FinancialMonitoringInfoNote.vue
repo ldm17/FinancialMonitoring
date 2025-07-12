@@ -1,43 +1,40 @@
 <template>
   <div>
-    <div v-for="item in items" :key="item.id">
-      <div style="width: 300px; overflow-wrap: break-word; white-space: normal;" v-if="item.id == this.financialMonitoringStore.pageParams.id">
+      <div v-if="transaction">
+      <div style="width: 300px; overflow-wrap: break-word; white-space: normal;">
         <div>
           <p style="display: flex; justify-content: space-between; align-items: center;">
-            <span>{{ this.financialMonitoringStore.categories.get(item.categoryId)?.name }}</span>
+            <span>{{ this.financialMonitoringStore.categories.get(transaction.categoryId)?.name }}</span>
             <span style="display: flex; gap: 1px;">
-              <el-button @click="isFavoriteTransaction(item.id)" size="small"><el-icon><CollectionTag /></el-icon></el-button>
-              <el-button @click="this.financialMonitoringStore.setPage('addNote', {
-                title: 'Редактирование операции', 
-                id: this.financialMonitoringStore.pageParams.id,
-                returnToInfoNote: true,
-                showDeleteButton: true,
-              })"
-                size="small">
+              <el-button @click="isFavoriteTransaction(transaction.id)" size="small"><el-icon><CollectionTag /></el-icon></el-button>
+
+              <el-button @click="this.$router.push({ name: 'add-note', params: { type: type, action: 'edit', id: id }, query: { currentMenuItem: typeOperation } })" size="small">
                 <el-icon><Edit /></el-icon>
               </el-button>
-              <el-button @click="deleteTransaction(item.id)" size="small"><el-icon><Delete /></el-icon></el-button>
+
+              <el-button @click="deleteTransaction(transaction.id)" size="small"><el-icon><Delete /></el-icon></el-button>
             </span>
           </p>
           <h1>
-            <el-icon v-if="item.isFavorite" size="small"><CollectionTag /></el-icon>
-            <el-icon v-if="item.isIgnoredInCalculation" size="small"><Hide /></el-icon>
-            <span :style="{ color: typeOperation === OperationType.Expenses ? 'red' : 'green', textAlign: 'right' }">{{ typeOperation === OperationType.Expenses ? '-' : '+' }}{{ item.amount }}</span>
+            <el-icon v-if="transaction.isFavorite" size="small"><CollectionTag /></el-icon>
+            <el-icon v-if="transaction.isIgnoredInCalculation" size="small"><Hide /></el-icon>
+            <span :style="{ color: transaction.operationType === OperationType.Expenses ? 'red' : 'green', textAlign: 'right' }">{{ transaction.operationType === OperationType.Expenses ? '-' : '+' }}{{ transaction.amount }}</span>
           </h1>
           <p>
             <el-icon><Calendar /></el-icon>
-            {{ item.date }}
+            <!-- {{ transaction.date }} -->
+              {{ format(parseISO(transaction.date), 'yyyy/MM/dd HH:mm') }}
           </p>
-          <p v-if="item.description" style="display: flex;">
+          <p v-if="transaction.description" style="display: flex;">
             <el-icon style="margin-right: 5px;"><EditPen /></el-icon>
-            <span style="color: grey">{{ item.description }}</span>
+            <span style="color: grey">{{ transaction.description }}</span>
           </p>
           <p>
             Не учитывается в общей сумме
-            <el-switch v-model="item.switch" :disabled="true" />
+            <el-switch v-model="transaction.switch" :disabled="true" />
           </p>
           <div>
-            <el-button @click="backToHome()">Назад</el-button>
+            <el-button @click="this.$router.back()">Назад</el-button>
           </div>
         </div>
       </div>
@@ -48,13 +45,14 @@
 <script>
 import { OperationType, useFinancialMonitoringStore } from "@/stores/FinancialMonitoringStore";
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { format, parseISO } from 'date-fns';
 
 export default {
   name: "financial-monitoring-info-note",
   props: {
-    currentMenuItem: {
-      type: Number,
-      required: true
+    id: {
+      type: String,
+      required: true,
     },
   },
   components: {},
@@ -62,25 +60,36 @@ export default {
     const financialMonitoringStore = useFinancialMonitoringStore();
     return { financialMonitoringStore };
   },
-  computed: {
-    items: function() {
-      return this.typeOperation === OperationType.Expenses ? this.financialMonitoringStore.expenses : this.financialMonitoringStore.incomes;
-    },
+  async created () {
+    this.typeOperation = Number(this.$route.query.currentMenuItem);
+    await this.financialMonitoringStore.fetchCategories(this.typeOperation);
+    await this.handleFetchTransaction();
   },
   watch: {
     currentMenuItem(newValue) {
       this.typeOperation = newValue;
-    }
+    },
   },
   data() {
     return {
-      typeOperation: this.currentMenuItem,
+      typeOperation: null,
+      transaction: null,
       OperationType,
+      format,
+      parseISO,
     };
   },
   methods: {
-    backToHome: function () {
-      this.financialMonitoringStore.setPage('expenses', {});
+    async handleFetchTransaction() {
+      try {
+        this.transaction = await this.financialMonitoringStore.fetchNote(this.id);
+        if (!this.transaction) {
+          this.$router.back();
+        }
+      } catch (error) {
+        console.error('Error loading transaction:', error);
+        this.$router.back();
+      }
     },
     deleteTransaction: function (id) {
       ElMessageBox.confirm(
@@ -100,7 +109,7 @@ export default {
           message: 'Запись удалена',
         })
         this.financialMonitoringStore.deleteTransaction(id, this.typeOperation);
-        this.financialMonitoringStore.setPage('expenses', {});
+        this.$router.back();
       })
       .catch(() => {
         ElMessage({
@@ -109,14 +118,21 @@ export default {
         })
       })
     },
-    isFavoriteTransaction: function (id) {
-      let notesArray = this.typeOperation === OperationType.Expenses ? this.financialMonitoringStore.expenses : this.financialMonitoringStore.incomes;
+    async isFavoriteTransaction (id) {
+      let transaction = await this.financialMonitoringStore.fetchNote(id);
+      
+      transaction.isFavorite = !transaction.isFavorite
+      let isSuccessUpdateIsFavorite = await this.financialMonitoringStore.editNote(transaction);
 
-      for (let item of notesArray) {
-        if (item.id == id) {
-          item.isFavorite = !item.isFavorite;
-          break;
+      if (isSuccessUpdateIsFavorite) {
+        if (transaction.isFavorite) {
+          ElMessage.success('Запись успешно добавлена в помеченные');
+        } else {
+          ElMessage.success('Запись успешно удалена из помеченных');
         }
+        this.financialMonitoringStore.fetchNotes(this.typeOperation, this.financialMonitoringStore.filtersTransactions.currentWalletId);
+      } else {
+        ElMessage.error('Не удалось добавить запись в помеченные');
       }
     },
   },

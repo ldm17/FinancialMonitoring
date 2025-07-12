@@ -3,7 +3,7 @@
     style="--el-switch-on-color: #888; --el-switch-off-color: #888" 
     v-model="isDark" 
     inline-prompt
-    :active-icon="Icons.Moon" 
+    :active-icon="Icons.Moon"
     :inactive-icon="Icons.Sunny" 
     @change="toggleTheme" />
 </template>

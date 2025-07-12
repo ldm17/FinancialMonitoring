@@ -1,6 +1,6 @@
 <template>
   <div class="range-filter-modal">
-    <el-dialog model-value title="Выберите диапазон сумм" width="500" center align-center @close="backToHome">
+    <el-dialog model-value title="Выберите диапазон сумм" width="500" center align-center>
       <div class="range-filter-modal-content">
         <div class="range-filter-input-container">
           <el-input style="width: 150px" v-model="selectedFilterMinAmount" placeholder="От" />
@@ -9,7 +9,7 @@
 
         <div class="range-filter-button-container">
           <el-button @click="backToHome()">Назад</el-button>
-          <el-button @click="filterByRangeOfAmounts()" :disabled="checkFieldsAmounts()">Продолжить</el-button>
+          <el-button @click="filterByRangeOfAmounts()" :disabled="checkFieldsAmounts()" type="primary">Продолжить</el-button>
         </div>
       </div>
     </el-dialog>
@@ -21,10 +21,6 @@ import { useFinancialMonitoringStore } from "@/stores/FinancialMonitoringStore";
 
 export default {
   name: "financial-monitoring-range-filter",
-  props: {
-    selectedMinAmount: Number,
-    selectedMaxAmount: Number,
-  },
   setup() {
     const financialMonitoringStore = useFinancialMonitoringStore();
     return { financialMonitoringStore };

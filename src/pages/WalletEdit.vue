@@ -34,6 +34,7 @@
 
 <script>
 import { useFinancialMonitoringStoreWallet } from "@/stores/FinancialMonitoringStoreWallet";
+import { useAuthenticationStore } from "@/stores/AuthenticationStore";
 import { ElMessage } from 'element-plus';
 
 export default {
@@ -42,7 +43,9 @@ export default {
   components: {},
   setup() {
     const financialMonitoringStoreWallet = useFinancialMonitoringStoreWallet();
-    return { financialMonitoringStoreWallet };
+    const authenticationStore = useAuthenticationStore();
+
+    return { financialMonitoringStoreWallet, authenticationStore };
   },
   async created() {
     if (this.action === 'edit') {
@@ -51,7 +54,6 @@ export default {
   },
   data() {
     return {
-      userId: 0,
       name: '',
       balance: '',
       currency: 'RUB',
@@ -67,7 +69,7 @@ export default {
     },
     async handleAddWallet () {
       const request = {
-        userId: this.userId,
+        userId: this.authenticationStore.user.userId,
         name: this.name,
         balance: parseFloat(this.balance),
         currency: this.currency,
@@ -86,7 +88,7 @@ export default {
     async handleEditWallet () {
       const updatedWallet = {
         id: this.$route.params.id,
-        userId: this.userId,
+        userId: this.authenticationStore.user.userId,
         name: this.name,
         balance: parseFloat(this.balance),
         currency: this.currency,

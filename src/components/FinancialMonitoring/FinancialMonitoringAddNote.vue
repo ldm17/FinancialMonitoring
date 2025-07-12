@@ -1,6 +1,6 @@
 <template>
   <div>
-    <p>{{ financialMonitoringStore.pageParams.title }}</p>
+     <p>{{ action === 'new' ? 'Добавление транзакции' : 'Редактирование транзакции' }}</p>
     <span v-if="isIgnoredInCalculation"><el-icon size="small"><Hide /></el-icon></span>
     <span v-if="isFavorite"><el-icon size="small"><CollectionTag /></el-icon></span>
     
@@ -49,7 +49,7 @@
       <el-button @click="addDescription()"><el-icon><EditPen /></el-icon></el-button>
       <el-button><el-icon><PictureFilled /></el-icon></el-button>
       <el-button @click="editIsFavorite()"><el-icon><CollectionTag /></el-icon></el-button>
-      <el-button v-if="financialMonitoringStore.pageParams.showDeleteButton" @click="deleteTransaction(this.financialMonitoringStore.pageParams.id)"><el-icon><Delete /></el-icon></el-button>
+      <el-button v-if="this.$route.params.action === 'edit'" @click="deleteTransaction(id)"><el-icon><Delete /></el-icon></el-button>
     </p>
 
     <p>
@@ -57,16 +57,16 @@
       <el-switch v-model="isIgnoredInCalculation" />
     </p>
 
-    <div v-if="financialMonitoringStore.pageParams.title == 'Добавление операции'">
+    <div v-if="action === 'new'">
       <p>
-        <el-button @click="backToHome()">Назад</el-button>
+        <el-button @click="this.$router.back()">Назад</el-button>
         <el-button type="primary" @click="addExpense(amount, selectedCategory, datePicker)" :disabled="checkFieldsAddExpense()">Добавить</el-button>
       </p>
     </div>
 
-    <div v-if="financialMonitoringStore.pageParams.title == 'Редактирование операции'">
+      <div v-if="action === 'edit'">
       <p>
-        <el-button @click="backToHome()">Назад</el-button>
+         <el-button @click="this.$router.back()">Назад</el-button>
         <el-button type="primary" @click="editExpense()" :disabled="checkFieldsAddExpense()">Сохранить</el-button>
       </p>
     </div>
@@ -83,10 +83,18 @@ import FinancialMonitoringCategoryList from './FinancialMonitoringCategoryList.v
 export default {
   name: "financial-monitoring-add-note",
   props: {
-    currentMenuItem: {
-      type: Number,
-      required: true
+    type: {
+      type: String,
+      required: true,
     },
+    action: {
+      type: String,
+      required: true,
+    },
+    id: {
+      type: String,
+      required: false,
+    }
   },
   components: {
     FinancialMonitoringCategoryList,
@@ -96,7 +104,7 @@ export default {
     return { financialMonitoringStore };
   },
   async created() {
-    this.typeOperation = this.currentMenuItem;
+    this.typeOperation = Number(this.$route.query.currentMenuItem);
 
     const isSuccessFetchCategories = await this.financialMonitoringStore.fetchCategories(this.typeOperation);
 
@@ -104,7 +112,7 @@ export default {
       ElMessage.error('Не удалось загрузить категории');
     };
 
-    const expenseId = this.financialMonitoringStore.pageParams.id;
+    const expenseId = Number(this.id);
     if (expenseId) {
       this.fetchExpense(expenseId);
     } else {
@@ -119,6 +127,18 @@ export default {
       this.errorMessage = false;
       this.isSubmitAttempted = false;
     }
+  },
+  async typeOperation(newType) {
+    const currentMenuItem = newType === OperationType.Expenses ? 0 : 1;
+
+    const isSuccess = await this.financialMonitoringStore.fetchCategories(newType);
+    if (isSuccess === null) {
+      ElMessage.error('Не удалось загрузить категории');
+    }
+
+    this.categoryListForSuggestion = this.loadAllCategoryList();
+
+    this.$router.replace({ params: { type: newType === this.OperationType.Expenses ? 'expense' : 'income' }, query: { ...this.$route.query, currentMenuItem } });
   }
 },
   data() {
@@ -139,15 +159,6 @@ export default {
     };
   },
   methods: {
-    backToHome: function () {
-      if (this.financialMonitoringStore.pageParams.returnToInfoNote) {
-        this.financialMonitoringStore.setPage('infoNote', {
-          id: this.financialMonitoringStore.pageParams.id,
-        });
-      } else {
-        this.financialMonitoringStore.setPage('expenses', {});
-      }
-    },
     async addExpense(amount, selectedCategory, datePicker) {
       this.isSubmitAttempted = true;
 
@@ -176,7 +187,8 @@ export default {
         this.financialMonitoringStore.filtersTransactions.selectedDate = datePicker;
 
         ElMessage.success('Запись успешно добавлена');
-        this.financialMonitoringStore.setPage('expenses', {});
+
+        this.redirectToTransactionTab();
       } else {
         ElMessage.error('Ошибка добавлении транзакции');
       }
@@ -209,7 +221,7 @@ export default {
       const utcDate = new Date(this.datePicker).toISOString();
 
       const updatedExpense = {
-        id: this.financialMonitoringStore.pageParams.id,
+        id: this.id,
         categoryId: isValidCategory.id,
         amount: parseFloat(this.amount),
         date: utcDate, // this.datePicker
@@ -224,7 +236,8 @@ export default {
 
       if (isSuccsess) {
         ElMessage.success('Запись успешно обновлена');
-        this.financialMonitoringStore.setPage('expenses', {});
+        
+        this.redirectToTransactionTab();
       } else {
         ElMessage.error('Не удалось обновить запись');
       }
@@ -256,7 +269,9 @@ export default {
           message: 'Запись удалена',
         })
         this.financialMonitoringStore.deleteTransaction(id, this.typeOperation);
-        this.financialMonitoringStore.setPage('expenses', {});
+
+        this.$router.replace({ query: {} });
+        this.$router.back();
       })
       .catch(() => {
         ElMessage({
@@ -311,6 +326,14 @@ export default {
       const minutes = String(today.getMinutes()).padStart(2, '0');
 
       this.datePicker = `${year}/${month}/${day} ${hours}:${minutes}`;
+    },
+    redirectToTransactionTab() {
+      const walletId = this.financialMonitoringStore.filtersTransactions.currentWalletId;
+      if (this.typeOperation === this.OperationType.Expenses) {
+        this.$router.push({ name: 'expenses', query: { walletId } });
+      } else {
+        this.$router.push({ name: 'incomes', query: { walletId } });
+      }
     },
   },
 };

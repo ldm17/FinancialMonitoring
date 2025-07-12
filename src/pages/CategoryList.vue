@@ -1,11 +1,11 @@
 <template>
   <div>
     <div class="segmented-container">
-      <el-segmented v-model="typeOperation" :options="typesOperations" style="width: 400px" />
+      <el-segmented v-model="typeOperation" :options="typesOperations" :key="typeOperation" style="width: 400px" />
     </div>
 
     <div class="filter-category-input">
-      <el-input v-model="filterCategory" style="width: 300px" placeholder="Поиск категории">
+      <el-input v-model="filterCategory" style="width: 300px" placeholder="Поиск категории" clearable>
         <template #prefix>
           <el-icon><Search /></el-icon>
         </template>
@@ -15,7 +15,7 @@
     <div>
       <el-scrollbar>
         <el-tree
-          ref="treeRef"
+          ref="categoryListDialog"
           style="width: 400px;"
           :data="getCategoryList()"
           draggable
@@ -30,7 +30,7 @@
           <div class="custom-tree-node visible-actions-category">
             <span>{{ node.label }}</span>
             <div>
-              <el-button style="margin-left: 4px" type="primary" link @click.stop="openEditCategory(data)"><el-icon><EditPen /></el-icon></el-button>
+              <el-button style="margin-left: 4px" type="primary" link @click.stop="openEditCategory(data.id)"><el-icon><EditPen /></el-icon></el-button>
               <el-button style="margin-left: 4px" type="danger" link @click.stop="openDialogConfirmDeleteCategory(data.id)"><el-icon><Delete /></el-icon></el-button>
             </div>
           </div>
@@ -45,7 +45,7 @@
         v-model="isConfirmCategoryDeleteDialogVisible"
         title="Подтвердите действие"
         width="500px"
-        :before-close="handleClose"
+        :before-close="handleCloseCategoryDeleteDialogVisible"
         center
         align-center
         draggable
@@ -62,7 +62,7 @@
         </div>
         <template #footer>
           <span class="dialog-footer">
-            <el-button @click="handleClose">Отменить</el-button>
+            <el-button @click="handleCloseCategoryDeleteDialogVisible">Отменить</el-button>
             <el-button type="primary" @click="handleDeleteCategory()">
               <el-icon><Delete /></el-icon>
                 <span>Удалить</span>
@@ -72,7 +72,15 @@
       </el-dialog>
     </div>
 
-    <router-view @category-added="handleCategoryAdded"></router-view>
+    <div>
+      <category-edit
+      v-if="isCategoryEditModal"
+      :isEditCategory="true"
+      :categoryIdToEdit="categoryIdToEdit"
+      :typeOperation="typeOperation"
+      @close="isCategoryEditModal = false;"
+      ></category-edit>
+    </div>
 
   </div>
 </template>
@@ -80,6 +88,7 @@
 <script>
 import { OperationType, useFinancialMonitoringStore } from "@/stores/FinancialMonitoringStore";
 import { ElMessage, ElMessageBox } from "element-plus";
+import CategoryEdit from "./CategoryEdit.vue";
 
 export default {
   name: "category-list-settings",
@@ -87,14 +96,17 @@ export default {
     const financialMonitoringStore = useFinancialMonitoringStore();
     return { financialMonitoringStore };
   },
+  components: {
+    CategoryEdit,
+  },
   watch: {
     async typeOperation(newTypeOperation) {
       this.financialMonitoringStore.setSelectedOperationTypeCategories(newTypeOperation);
       await this.handleFetchCategories(newTypeOperation);
     },
     filterCategory: function (value) {
-      this.$refs.treeRef.filter(value);
-    }
+      this.$refs.categoryListDialog.filter(value);
+    },
   },
   async created() {
     await this.handleFetchCategories(this.typeOperation);
@@ -113,6 +125,8 @@ export default {
       filterCategory: '',
       isConfirmCategoryDeleteDialogVisible: false,
       categoryIdToDelete: null,
+      isCategoryEditModal: false,
+      categoryIdToEdit: null,
     }
   },
   methods: {
@@ -128,8 +142,9 @@ export default {
     getCategoryList: function () {
       return Array.from(this.financialMonitoringStore.categories.values()).filter((category) => !category.parentId);
     },
-    openEditCategory: function (data) {
-      this.$router.push({ name: 'category-edit-settings', params: { type: this.typeOperation, action: 'edit', id: data.id } });
+    openEditCategory: function (id) {
+      this.categoryIdToEdit = id;
+      this.isCategoryEditModal = true;
     },
     filterNode(value, data) {
       if (!value) {
@@ -154,7 +169,7 @@ export default {
       this.isConfirmCategoryDeleteDialogVisible = false;
       this.categoryIdToDelete = null;
     },
-    handleClose: function() {
+    handleCloseCategoryDeleteDialogVisible: function() {
       this.isConfirmCategoryDeleteDialogVisible = false;
       this.categoryIdToDelete = null;
 

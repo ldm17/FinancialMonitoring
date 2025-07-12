@@ -1,6 +1,10 @@
 import { defineStore } from 'pinia';
 import axios from 'axios';
 import { format, parseISO } from 'date-fns';
+// eslint-disable-next-line import/extensions, import/no-unresolved
+import ApiClient from '@/api/ApiClient';
+// eslint-disable-next-line import/extensions, import/no-unresolved
+import { useFinancialMonitoringStore } from './FinancialMonitoringStore';
 
 interface Note {
   date?: string;
@@ -16,8 +20,6 @@ type Wallet = {
   description: string;
 }
 
-const baseUrl = 'http://localhost:5124/api';
-
 export const useFinancialMonitoringStoreWallet = defineStore('financialMonitoringStoreWallet', {
   state: () => ({
     wallets: [] as Wallet[],
@@ -25,13 +27,13 @@ export const useFinancialMonitoringStoreWallet = defineStore('financialMonitorin
   actions: {
     async fetchWallets() {
       try {
-        const url = `${baseUrl}/wallets`;
+        const url = '/wallets';
 
-        const response = await axios.get<Wallet[]>(url);
+        const response = await ApiClient.get<Wallet[]>(url);
 
-        this.wallets = response.data.map((wallet) => ({
+        this.wallets = response.data.map((wallet: any) => ({
           id: wallet.id,
-          userId: wallet.id,
+          userId: wallet.userId,
           name: wallet.name,
           balance: wallet.balance,
           currency: wallet.currency,
@@ -47,8 +49,8 @@ export const useFinancialMonitoringStoreWallet = defineStore('financialMonitorin
     },
     async fetchWallet(id: number) {
       try {
-        const url = `${baseUrl}/wallets/${id}`;
-        const response = await axios.get(url);
+        const url = `/wallets/${id}`;
+        const response = await ApiClient.get(url);
 
         return response.data;
       } catch (error) {
@@ -58,9 +60,9 @@ export const useFinancialMonitoringStoreWallet = defineStore('financialMonitorin
     },
     async addWallet(note: Note = {}) {
       try {
-        const url = `${baseUrl}/wallets`;
+        const url = '/wallets';
 
-        await axios.post(url, {
+        await ApiClient.post(url, {
           ...note,
         });
         await this.fetchWallets();
@@ -73,8 +75,8 @@ export const useFinancialMonitoringStoreWallet = defineStore('financialMonitorin
     },
     async editWallet(updatedWallet: any) {
       try {
-        const url = `${baseUrl}/wallets/${updatedWallet.id}`;
-        await axios.put(url, updatedWallet);
+        const url = `/wallets/${updatedWallet.id}`;
+        await ApiClient.put(url, updatedWallet);
 
         return true;
       } catch (error) {
@@ -84,10 +86,23 @@ export const useFinancialMonitoringStoreWallet = defineStore('financialMonitorin
     },
     async deleteWallet(id: number) {
       try {
-        await axios.delete(`${baseUrl}/wallets/${id}`);
+        await ApiClient.delete(`/wallets/${id}`);
         await this.fetchWallets();
       } catch (error) {
         console.error('Ошибка при удалении записи:', error);
+      }
+    },
+    setCurrentWalletId(walletId: number | null) {
+      const financialMonitoringStore = useFinancialMonitoringStore();
+
+      const validWalletIds = this.wallets.map((w) => w.id);
+
+      if (walletId && validWalletIds.includes(walletId)) {
+        financialMonitoringStore.filtersTransactions.currentWalletId = walletId;
+      } else if (this.wallets.length > 0) {
+        financialMonitoringStore.filtersTransactions.currentWalletId = this.wallets[0].id;
+      } else {
+        financialMonitoringStore.filtersTransactions.currentWalletId = 0;
       }
     },
   },
