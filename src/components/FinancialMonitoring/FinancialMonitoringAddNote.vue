@@ -330,9 +330,15 @@ export default {
     redirectToTransactionTab() {
       const walletId = this.financialMonitoringStore.filtersTransactions.currentWalletId;
       if (this.typeOperation === this.OperationType.Expenses) {
-        this.$router.push({ name: 'expenses', query: { walletId } });
+        this.$router.push({ 
+          name: 'expenses', 
+          query: { walletId } 
+        });
       } else {
-        this.$router.push({ name: 'incomes', query: { walletId } });
+        this.$router.push({ 
+          name: 'incomes', 
+          query: { walletId } 
+        });
       }
     },
   },

@@ -74,12 +74,23 @@
 
     <div>
       <category-edit
+        v-if="isCategoryAddModalVisible"
+        :isAddCategory="true"
+        @close="isCategoryAddModalVisible = false"
+        @category-added="handleCategoryAdded"
+      >
+      </category-edit>
+    </div>
+
+    <div>
+      <category-edit
       v-if="isCategoryEditModal"
       :isEditCategory="true"
       :categoryIdToEdit="categoryIdToEdit"
       :typeOperation="typeOperation"
       @close="isCategoryEditModal = false;"
-      ></category-edit>
+      >
+      </category-edit>
     </div>
 
   </div>
@@ -87,7 +98,7 @@
 
 <script>
 import { OperationType, useFinancialMonitoringStore } from "@/stores/FinancialMonitoringStore";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessage } from "element-plus";
 import CategoryEdit from "./CategoryEdit.vue";
 
 export default {
@@ -108,6 +119,12 @@ export default {
       this.$refs.categoryListDialog.filter(value);
     },
   },
+  mounted() {
+    this.financialMonitoringStore.setHeaderButtonHandler(this.handleAddCategoryButtonClick);
+  },
+  unmounted() {
+    this.financialMonitoringStore.resetHeaderButtonHandler();
+  },
   async created() {
     await this.handleFetchCategories(this.typeOperation);
   },
@@ -127,6 +144,7 @@ export default {
       categoryIdToDelete: null,
       isCategoryEditModal: false,
       categoryIdToEdit: null,
+      isCategoryAddModalVisible: false,
     }
   },
   methods: {
@@ -179,6 +197,9 @@ export default {
       if (this.typeOperation !== operationType) {
         this.typeOperation = operationType;
       }
+    },
+    handleAddCategoryButtonClick() {
+      this.isCategoryAddModalVisible = true;
     },
   }
 };

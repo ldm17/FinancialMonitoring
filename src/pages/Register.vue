@@ -101,7 +101,9 @@ export default {
 
         this.authenticationStore.login(token, refreshToken);
         ElMessage.success('Регистрация успешно завершена!');
-        this.$router.push({ name: 'expenses' });
+        this.$router.push({ 
+          name: 'expenses' 
+        });
       } catch (error) {
         console.error('Ошибка при аутентификации:', error);
       } finally {

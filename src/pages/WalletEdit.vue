@@ -99,7 +99,9 @@ export default {
 
       if (isSuccsess) {
         ElMessage.success('Кошелек успешно обновлен');
-        this.$router.push({ name: 'wallet-list-settings' });
+        this.$router.push({ 
+          name: 'wallet-list-settings' 
+        });
       } else {
         ElMessage.error('Не удалось обновить кошелек');
       }

@@ -60,15 +60,21 @@ export default {
     const financialMonitoringStore = useFinancialMonitoringStore();
     return { financialMonitoringStore };
   },
-  async created () {
-    this.typeOperation = Number(this.$route.query.currentMenuItem);
-    await this.financialMonitoringStore.fetchCategories(this.typeOperation);
-    await this.handleFetchTransaction();
-  },
   watch: {
     currentMenuItem(newValue) {
       this.typeOperation = newValue;
     },
+  },
+  mounted() {
+    this.financialMonitoringStore.setHeaderButtonHandler(this.handleAddTransactionButtonClick);
+  },
+  unmounted() {
+    this.financialMonitoringStore.resetHeaderButtonHandler();
+  },
+  async created () {
+    this.typeOperation = Number(this.$route.query.currentMenuItem);
+    await this.financialMonitoringStore.fetchCategories(this.typeOperation);
+    await this.handleFetchTransaction();
   },
   data() {
     return {
@@ -134,6 +140,14 @@ export default {
       } else {
         ElMessage.error('Не удалось добавить запись в помеченные');
       }
+    },
+    handleAddTransactionButtonClick() {
+      const type = this.typeOperation === OperationType.Expenses ? 'expense' : 'income';
+      this.$router.push({ 
+        name: 'add-note',
+        params: { type: type, action: 'new' },
+        query: { currentMenuItem: this.typeOperation, walletId: this.financialMonitoringStore.filtersTransactions.currentWalletId } 
+      });
     },
   },
 };

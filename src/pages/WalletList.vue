@@ -57,6 +57,7 @@
 
 <script>
 import { useFinancialMonitoringStoreWallet } from "@/stores/FinancialMonitoringStoreWallet";
+import { useFinancialMonitoringStore } from "@/stores/FinancialMonitoringStore";
 import { formatDate } from "@/utils.js";
 import { ElMessage, ElMessageBox } from 'element-plus';
 
@@ -65,10 +66,18 @@ export default {
   components: {},
   setup() {
     const financialMonitoringStoreWallet = useFinancialMonitoringStoreWallet();
-    return { financialMonitoringStoreWallet };
+    const financialMonitoringStore = useFinancialMonitoringStore();
+
+    return { financialMonitoringStoreWallet, financialMonitoringStore };
   },
   async created() {
     await this.handleFetchWallets();
+  },
+  mounted() {
+    this.financialMonitoringStore.setHeaderButtonHandler(this.handleAddWalletButtonClick);
+  },
+  unmounted() {
+    this.financialMonitoringStore.resetHeaderButtonHandler();
   },
   data() {
     return {
@@ -77,7 +86,10 @@ export default {
   },
   methods: {
     openEditWallet: function (id) {
-      this.$router.push({ name: 'wallet-edit-settings', params: { action: 'edit', id: id } });
+      this.$router.push({ 
+        name: 'wallet-edit-settings', 
+        params: { action: 'edit', id: id } 
+      });
     },
     confirmDeleteWallet: function (id) {
       ElMessageBox.confirm(
@@ -106,13 +118,19 @@ export default {
         })
       })
     },
-    async handleFetchWallets () {
+    async handleFetchWallets() {
       const isSuccessFetchWallets = await this.financialMonitoringStoreWallet.fetchWallets();
 
       if (isSuccessFetchWallets === null) {
         ElMessage.error('Не удалось загрузить кошельки');
       };
     },
+    handleAddWalletButtonClick() {
+      this.$router.push({ 
+        name: 'wallet-edit-settings', 
+        params: { action: 'new' } 
+      });
+    }
   },
 };
 </script>

@@ -84,7 +84,9 @@ export default {
 
         this.authenticationStore.login(token, refreshToken);
         ElMessage.success('Вы успешно вошли в аккаунт!');
-        this.$router.push({ name: 'expenses' });
+        this.$router.push({ 
+          name: 'expenses' 
+        });
       } catch (error) {
         console.error('Ошибка при аутентификации:', error);
         ElMessage.error('Неверный email или пароль.');

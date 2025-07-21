@@ -1,5 +1,4 @@
 import { defineStore } from 'pinia';
-import axios from 'axios';
 import { format, parseISO } from 'date-fns';
 // eslint-disable-next-line import/extensions, import/no-unresolved
 import ApiClient from '@/api/ApiClient';
@@ -73,6 +72,7 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     incomes: [] as Expense[],
     categories: new Map<number, Category>(),
     selectedOperationTypeCategories: OperationType.Expenses,
+    headerButtonHandler: null,
   }),
   actions: {
     setPage(page: string, params: object) {
@@ -266,7 +266,12 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     },
     setSelectedOperationTypeCategories(type: number) {
       this.selectedOperationTypeCategories = type;
-      console.log(this.selectedOperationTypeCategories);
+    },
+    setHeaderButtonHandler(fn: any) {
+      this.headerButtonHandler = fn;
+    },
+    resetHeaderButtonHandler() {
+      this.headerButtonHandler = null;
     },
   },
 });

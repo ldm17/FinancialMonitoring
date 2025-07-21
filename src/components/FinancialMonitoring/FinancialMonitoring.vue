@@ -54,27 +54,13 @@
         <el-header class="blurred-header">
           <div class="header">
             <theme-switcher style="right: 15px;" />
-            <el-button
-              v-if="financialMonitoringStore.currentPage !== 'addNote' && $route.name !== 'wallet-list-settings' && $route.name !== 'category-list-settings'"
-              type="primary" :icon="Icons.Plus" @click="openAddExpense()">Добавить</el-button>
-
-            <el-button v-if="$route.name === 'wallet-list-settings'" type="primary" :icon="Icons.Plus" @click="openAddWallet()">Добавить</el-button>
-            
-            <el-button v-if="$route.name === 'category-list-settings'" type="primary" :icon="Icons.Plus" @click="isCategoryAddModalVisible = true">Добавить</el-button>
+            <el-button type="primary" :icon="Icons.Plus" @click="handleHeaderButtonClick()">Добавить</el-button>
           </div>
         </el-header>
 
         <el-main>
           <el-scrollbar>
             <RouterView />
-
-            <category-edit
-              v-if="isCategoryAddModalVisible"
-              :isAddCategory="true"
-              @close="isCategoryAddModalVisible = false"
-            >
-            </category-edit>
-
           </el-scrollbar>
         </el-main>
       </el-container>
@@ -127,17 +113,9 @@ export default {
     return {
       Icons,
       currentMenuItem: OperationType.Expenses,
-      isCategoryAddModalVisible: false,
     };
   },
   methods: {
-    openAddExpense: function () {
-      const type = this.currentMenuItem === OperationType.Expenses ? 'expense' : 'income';
-      this.$router.push({ name: 'add-note', params: { type: type, action: 'new' }, query: { currentMenuItem: this.currentMenuItem, walletId: this.financialMonitoringStore.filtersTransactions.currentWalletId } });
-    },
-    openAddWallet: function () {
-      this.$router.push({ name: 'wallet-edit-settings', params: { action: 'new' } });
-    },
     handleMenuSelect: function (index) {
       this.currentMenuItem = index === '1' ? OperationType.Expenses : OperationType.Incomes;
     },
@@ -159,7 +137,9 @@ export default {
           type: 'success',
           message: 'Вы вышли из аккаунта',
         });
-        this.$router.push({ name: 'login' });
+        this.$router.push({ 
+          name: 'login' 
+        });
       })
       .catch(() => {
         ElMessage({
@@ -167,6 +147,11 @@ export default {
           message: 'Выход отменён',
         })
       })
+    },
+    handleHeaderButtonClick: function() {
+      if (typeof this.financialMonitoringStore.headerButtonHandler === 'function') {
+        this.financialMonitoringStore.headerButtonHandler();
+      }
     },
   },
 };

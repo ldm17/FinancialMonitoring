@@ -179,6 +179,12 @@ export default {
       this.removeEmptyTabs();
     },
   },
+  mounted() {
+    this.financialMonitoringStore.setHeaderButtonHandler(this.handleAddTransactionButtonClick);
+  },
+  unmounted() {
+    this.financialMonitoringStore.resetHeaderButtonHandler();
+  },
   async created() {
     const walletIdFromUrl = this.$route.query.walletId ? Number(this.$route.query.walletId) : null;
 
@@ -287,9 +293,11 @@ export default {
         this.selectedFilterMinAmount = null;
         this.selectedFilterMaxAmount = null;
         this.financialMonitoringStore.filtersTransactions.selectedFilterCategory = '';
-        console.log(this.financialMonitoringStore.filtersTransactions.selectedFilterCategory);
 
-        this.$router.push({ name: this.$route.matched[0].name, query: {} });
+        this.$router.push({ 
+          name: this.$route.matched[0].name, 
+          query: {} 
+        });
       } else if (this.typeFilterTransactions == FilterType.ByCategories) {
         this.isCategoryListDialogVisible = true;
       } else if (this.typeFilterTransactions == FilterType.ByRangeOfAmounts) {
@@ -484,11 +492,19 @@ export default {
     },
     openEditNote: function (id) {
       const type = this.typeOperation === OperationType.Expenses ? 'expense' : 'income';
-      this.$router.push({ name: 'add-note', params: { type: type, action: 'edit', id: id }, query: { currentMenuItem: this.typeOperation } });
+      this.$router.push({ 
+        name: 'add-note', 
+        params: { type: type, action: 'edit', id: id }, 
+        query: { currentMenuItem: this.typeOperation } 
+      });
     },
     openInfoNote: function (id) {
       const type = this.typeOperation === OperationType.Expenses ? 'expense' : 'income';
-      this.$router.push({ name: 'info-note', params: { type: type, id: id }, query: { currentMenuItem: this.typeOperation } });
+      this.$router.push({ 
+        name: 'info-note', 
+        params: { type: type, id: id }, 
+        query: { currentMenuItem: this.typeOperation } 
+      });
     },
     onRangeOfAmountsSelected: function ({ minAmount, maxAmount }) {
       this.selectedFilterMinAmount = minAmount;
@@ -542,6 +558,14 @@ export default {
     },
     handleCloseCategoryListDialog: function () {
       this.$refs.categoryListDialog.filterCategory = '';
+    },
+    handleAddTransactionButtonClick() {
+      const type = this.typeOperation === OperationType.Expenses ? 'expense' : 'income';
+      this.$router.push({ 
+        name: 'add-note',
+        params: { type: type, action: 'new' },
+        query: { currentMenuItem: this.typeOperation, walletId: this.financialMonitoringStore.filtersTransactions.currentWalletId } 
+      });
     },
   },
 };
