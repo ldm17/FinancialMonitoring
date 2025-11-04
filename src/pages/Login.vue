@@ -64,7 +64,7 @@ export default {
     async handleLogin() {
       try {
         const isValid = await this.$refs.formRef.validate();
-      
+
         if (!isValid) {
           return;
         }
@@ -84,12 +84,17 @@ export default {
 
         this.authenticationStore.login(token, refreshToken);
         ElMessage.success('Вы успешно вошли в аккаунт!');
-        this.$router.push({ 
-          name: 'expenses' 
+        this.$router.push({
+          name: 'expenses'
         });
       } catch (error) {
         console.error('Ошибка при аутентификации:', error);
-        ElMessage.error('Неверный email или пароль.');
+
+        if (error.response) {
+          ElMessage.error('Неверный email или пароль');
+        } else if (error.request) {
+          ElMessage.error('Сервер недоступен. Пожалуйста, попробуйте позже');
+        }
       } finally {
         this.isLoading = false;
       }

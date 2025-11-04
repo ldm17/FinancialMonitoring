@@ -19,7 +19,7 @@
           <el-row style="margin-top: 4px;">
             <el-col :span="24">
               <div style="color: #888; font-size: 0.85em;">
-                {{ formatDate(wallet.createdAt) }}
+                {{ formatDate(wallet.createdAt, 'dateWithoutTime') }}
               </div>
             </el-col>
           </el-row>

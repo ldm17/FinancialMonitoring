@@ -1,7 +1,14 @@
 import { defineStore } from 'pinia';
-import { format, parseISO } from 'date-fns';
+
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
 // eslint-disable-next-line import/extensions, import/no-unresolved
 import ApiClient from '@/api/ApiClient';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 interface Expense {
   id: number;
@@ -13,6 +20,7 @@ interface Expense {
   isFavorite?: boolean;
   operationType: number;
   walletId: number,
+  timeZone: string,
 }
 
 export const SortType = {
@@ -36,10 +44,6 @@ export const GroupType = {
   ByDate: 0,
   ByCategories: 1,
 };
-
-interface Note {
-  date?: string;
-}
 
 export const OperationType = {
   Expenses: 0,
@@ -73,6 +77,8 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     categories: new Map<number, Category>(),
     selectedOperationTypeCategories: OperationType.Expenses,
     headerButtonHandler: null,
+    defaultTimeZoneWithUtcOffset: null,
+    isTimeZoneEnabled: null,
   }),
   actions: {
     setPage(page: string, params: object) {
@@ -96,12 +102,13 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
           id: note.id,
           categoryId: note.categoryId,
           amount: note.amount,
-          date: format(parseISO(note.date), 'yyyy/MM/dd HH:mm'),
+          date: (note as any).createdAt,
           description: note.description,
           isIgnoredInCalculation: note.isIgnoredInCalculation,
           isFavorite: note.isFavorite,
           operationType: note.operationType,
           walletId: note.walletId,
+          timeZone: note.timeZone,
         }));
       } catch (error) {
         console.error('Ошибка при загрузке транзакций:', error);
@@ -115,21 +122,17 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
 
         return response.data;
       } catch (error) {
-        console.error('Ошибка при загрузке записи:', error);
+        console.error('Ошибка при загрузке транзакции:', error);
         return null;
       }
     },
     // eslint-disable-next-line default-param-last
-    async addNote(note: Note = {}, typeOperation: number) {
+    async addNote(request: any, typeOperation: number) {
       try {
         const url = '/transactions';
         const walletId = this.filtersTransactions.currentWalletId;
-        const utcDate = note.date ? new Date(note.date).toISOString() : null;
 
-        await ApiClient.post(url, {
-          ...note,
-          date: utcDate,
-        });
+        await ApiClient.post(url, request);
         await this.fetchNotes(typeOperation, walletId);
       } catch (error) {
         console.error('Ошибка при добавлении записи:', error);
@@ -272,6 +275,45 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     },
     resetHeaderButtonHandler() {
       this.headerButtonHandler = null;
+    },
+    async editTimeZone(updatedTimeZone: any) {
+      try {
+        const url = '/usersettings/update-timezone';
+        await ApiClient.put(url, updatedTimeZone);
+
+        return true;
+      } catch (error) {
+        console.error('Ошибка при редактировании тайм-зоны:', error);
+        return false;
+      }
+    },
+    async fetchTimeZone() {
+      try {
+        const url = '/usersettings';
+        const response = await ApiClient.get(url);
+
+        this.defaultTimeZoneWithUtcOffset = response.data;
+        this.isTimeZoneEnabled = response.data.isTimeZoneEnabled;
+
+        return {
+          timeZoneWithUtcOffset: response.data,
+          isTimeZoneEnabled: response.data.isTimeZoneEnabled,
+        };
+      } catch (error) {
+        console.error('Ошибка при загрузке тайм-зоны:', error);
+        return null;
+      }
+    },
+    async editIsTimezoneEnabled(updateIsTimezoneEnabled: any) {
+      try {
+        const url = '/usersettings/update-timezone-enabled';
+        await ApiClient.put(url, updateIsTimezoneEnabled);
+
+        return true;
+      } catch (error) {
+        console.error('Ошибка при изменении настройки учитывания часового пояса устройства:', error);
+        return false;
+      }
     },
   },
 });

@@ -36,9 +36,9 @@
         </financial-monitoring-category-list>
       </span>
     </el-dialog>
-
-    <p>Дата</p>
-    <el-date-picker style="width: 250px" v-model="datePicker" type="datetime" placeholder="Выберите дату и время" format="YYYY/MM/DD HH:mm" value-format="YYYY/MM/DD HH:mm" time-format="HH:mm"/>
+    
+    <p>Дата <span v-if="action === 'new' && checkTimezoneWarning()" style="font-size: 12px; color: #409EFF;">({{ checkTimezoneWarning() }})</span></p>
+    <el-date-picker style="width: 250px" v-model="datePicker" type="datetime" placeholder="Выберите дату и время" format="YYYY/MM/DD HH:mm" value-format="YYYY-MM-DD HH:mm" time-format="HH:mm" />
 
     <div v-if="isDescription">
       <p>Примечание</p>
@@ -66,19 +66,37 @@
 
       <div v-if="action === 'edit'">
       <p>
-         <el-button @click="this.$router.back()">Назад</el-button>
-        <el-button type="primary" @click="editExpense()" :disabled="checkFieldsAddExpense()">Сохранить</el-button>
+        <el-button @click="this.$router.back()">Назад</el-button>
+        <el-button type="primary" @click="handleEditTransaction()" :disabled="checkFieldsAddExpense()">Сохранить</el-button>
       </p>
+    </div>
+
+    <div>
+      <el-dialog class="select-timeZone-modal" v-model="isDialogWarningEditDatePicker" title="Подтвердите действие" width="600" center align-center draggable>
+        <p style="text-align: center;">Дата транзакции была изменена. Как учесть часовой пояс?</p>
+        <div class="select-timeZone-button-container">
+          <el-button type="primary" @click="saveOriginalTimeZone()">Сохранить исходный (UTC{{ getTzOffsets.transactionOffset }})</el-button>
+          <el-button type="primary" @click="saveCurrentTimeZone()">Сохранить текущий (UTC{{ getTzOffsets.detectedTimeZone }})</el-button>
+        </div>
+      </el-dialog>
     </div>
   </div>
 </template> 
 
 <script>
-import axios from 'axios';
 import { format, parseISO } from 'date-fns';
 import { OperationType, useFinancialMonitoringStore } from '@/stores/FinancialMonitoringStore';
+import { useFinancialMonitoringStoreWallet } from "@/stores/FinancialMonitoringStoreWallet";
 import { ElMessage, ElMessageBox } from 'element-plus';
 import FinancialMonitoringCategoryList from './FinancialMonitoringCategoryList.vue';
+import { getDetectedTimeZone } from '@/utils.js';
+
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc)
+dayjs.extend(timezone)
 
 export default {
   name: "financial-monitoring-add-note",
@@ -101,16 +119,27 @@ export default {
   },
   setup() {
     const financialMonitoringStore = useFinancialMonitoringStore();
-    return { financialMonitoringStore };
+    const financialMonitoringStoreWallet = useFinancialMonitoringStoreWallet();
+    return { financialMonitoringStore, financialMonitoringStoreWallet };
   },
   async created() {
     this.typeOperation = Number(this.$route.query.currentMenuItem);
+
+    const walletIdFromUrl = this.$route.query.walletId ? Number(this.$route.query.walletId) : null;
+    const isSuccessFetchWallets = await this.financialMonitoringStoreWallet.fetchWallets();
+    this.financialMonitoringStoreWallet.setCurrentWalletId(walletIdFromUrl);
+
+    if (isSuccessFetchWallets === null) {
+      ElMessage.error('Не удалось загрузить кошельки');
+    };
 
     const isSuccessFetchCategories = await this.financialMonitoringStore.fetchCategories(this.typeOperation);
 
     if (isSuccessFetchCategories === null) {
       ElMessage.error('Не удалось загрузить категории');
     };
+
+    await this.financialMonitoringStore.fetchTimeZone();
 
     const expenseId = Number(this.id);
     if (expenseId) {
@@ -122,25 +151,42 @@ export default {
     this.categoryListForSuggestion = this.loadAllCategoryList();
   },
   watch: {
-  selectedCategory(newValue) {
-    if (newValue.length === 0) {
-      this.errorMessage = false;
-      this.isSubmitAttempted = false;
+    selectedCategory(newValue) {
+      if (newValue.length === 0) {
+        this.errorMessage = false;
+        this.isSubmitAttempted = false;
+      }
+    },
+    async typeOperation(newType) {
+      const currentMenuItem = newType === OperationType.Expenses ? 0 : 1;
+
+      const isSuccess = await this.financialMonitoringStore.fetchCategories(newType);
+      if (isSuccess === null) {
+        ElMessage.error('Не удалось загрузить категории');
+      }
+
+      this.categoryListForSuggestion = this.loadAllCategoryList();
+
+      this.$router.replace({ params: { type: newType === this.OperationType.Expenses ? 'expense' : 'income' }, query: { ...this.$route.query, currentMenuItem } });
+    },
+    datePicker(newValue, oldValue) {
+      this.isEditDatePicker = oldValue && oldValue !== newValue ? true : false;
     }
   },
-  async typeOperation(newType) {
-    const currentMenuItem = newType === OperationType.Expenses ? 0 : 1;
+  computed: {
+    currentWalletId: function () {
+      return this.financialMonitoringStore.filtersTransactions.currentWalletId;
+    },
+    getTzOffsets: function () {
+      const transactionOffset = dayjs().tz(this.timeZone).format('Z');
+      const detectedTimeZone = dayjs().tz(getDetectedTimeZone()).format('Z');
 
-    const isSuccess = await this.financialMonitoringStore.fetchCategories(newType);
-    if (isSuccess === null) {
-      ElMessage.error('Не удалось загрузить категории');
-    }
-
-    this.categoryListForSuggestion = this.loadAllCategoryList();
-
-    this.$router.replace({ params: { type: newType === this.OperationType.Expenses ? 'expense' : 'income' }, query: { ...this.$route.query, currentMenuItem } });
-  }
-},
+      return {
+        transactionOffset,
+        detectedTimeZone,
+      };
+    },
+  },
   data() {
     return {
       amount: null,
@@ -156,6 +202,11 @@ export default {
       isSubmitAttempted: false,
       typeOperation: OperationType.Expenses,
       OperationType,
+      getDetectedTimeZone: getDetectedTimeZone,
+      timeZone: '',
+      isEditDatePicker: false,
+      isDialogWarningEditDatePicker: false,
+      typeSaveEditDatePicker: '',
     };
   },
   methods: {
@@ -170,17 +221,21 @@ export default {
         return;
       }
 
+      const targetZone = this.financialMonitoringStore.isTimeZoneEnabled ? getDetectedTimeZone() : this.financialMonitoringStore.defaultTimeZoneWithUtcOffset.timeZone;
+
+      const datePickerWithOffset = dayjs(datePicker).tz(targetZone, true).format('YYYY-MM-DDTHH:mm:ss.SSSZ');
+
       const request = {
         categoryId: isValidCategory.id,
         amount: parseFloat(amount),
-        date: new Date(this.datePicker).toISOString(),
+        createdAtUtc: datePickerWithOffset,
         description: this.description,
         isIgnoredInCalculation: this.isIgnoredInCalculation,
         isFavorite: this.isFavorite,
         operationType: this.typeOperation,
         walletId: this.financialMonitoringStore.filtersTransactions.currentWalletId,
+        timeZone: targetZone,
       };
-
       const isSuccsess = await this.financialMonitoringStore.addNote(request, this.typeOperation);
 
       if (isSuccsess) {
@@ -199,15 +254,16 @@ export default {
       if (expense !== null) {
         this.amount = expense.amount;
         this.selectedCategory = this.financialMonitoringStore.categories.get(expense.categoryId)?.name;
-        this.datePicker = format(parseISO(expense.date), 'yyyy/MM/dd HH:mm'); // expense.date
+        this.datePicker = dayjs(expense.createdAt).tz(expense.timeZone).format('YYYY-MM-DD HH:mm');
         this.description = expense.description;
         this.isIgnoredInCalculation = expense.isIgnoredInCalculation;
         this.isFavorite = expense.isFavorite;
+        this.timeZone = expense.timeZone;
       } else {
         ElMessage.error('Не удалось загрузить запись');
       }
     },
-    async editExpense() {
+    async editTransaction() {
       this.isSubmitAttempted = true;
 
       const allCategories = this.loadAllCategoryList();
@@ -218,24 +274,34 @@ export default {
         return;
       }
 
-      const utcDate = new Date(this.datePicker).toISOString();
+      let targetZone = '';
+
+      if (this.isDialogWarningEditDatePicker) {
+        targetZone = this.typeSaveEditDatePicker === 'saveOriginalTimeZone' ? this.timeZone : getDetectedTimeZone();
+      } else if (this.timeZone == getDetectedTimeZone()) {
+        targetZone = this.timeZone;
+      }
+
+      let datePickerWithOffset = dayjs(this.datePicker).tz(targetZone, true).format('YYYY-MM-DDTHH:mm:ss.SSSZ');
 
       const updatedExpense = {
         id: this.id,
         categoryId: isValidCategory.id,
         amount: parseFloat(this.amount),
-        date: utcDate, // this.datePicker
+        createdAtUtc: datePickerWithOffset,
         description: this.description,
         isIgnoredInCalculation: this.isIgnoredInCalculation,
         isFavorite: this.isFavorite,
         operationType: this.typeOperation,
         walletId: this.financialMonitoringStore.filtersTransactions.currentWalletId,
+        timeZone: targetZone,
       };
 
       const isSuccsess = await this.financialMonitoringStore.editNote(updatedExpense);
 
       if (isSuccsess) {
         ElMessage.success('Запись успешно обновлена');
+        this.isDialogWarningEditDatePicker = false;
         
         this.redirectToTransactionTab();
       } else {
@@ -266,7 +332,7 @@ export default {
       .then(() => {
         ElMessage({
           type: 'success',
-          message: 'Запись удалена',
+          message: 'Запись успешно удалена',
         })
         this.financialMonitoringStore.deleteTransaction(id, this.typeOperation);
 
@@ -293,7 +359,7 @@ export default {
         return (labelCategory.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0);
       };
     },
-    loadAllCategoryList() {
+    loadAllCategoryList: function () {
       const store = this.financialMonitoringStore;
 
       const extractCategories = (categories) => {
@@ -318,16 +384,9 @@ export default {
       return extractCategories(rootCategories);
     },
     setCurrentDate: function () {
-      const today = new Date();
-      const year = today.getFullYear();
-      const month = String(today.getMonth() + 1).padStart(2, '0');
-      const day = String(today.getDate()).padStart(2, '0');
-      const hours = String(today.getHours()).padStart(2, '0');
-      const minutes = String(today.getMinutes()).padStart(2, '0');
-
-      this.datePicker = `${year}/${month}/${day} ${hours}:${minutes}`;
+      this.datePicker = this.financialMonitoringStore.isTimeZoneEnabled ? dayjs().tz(getDetectedTimeZone()).format('YYYY-MM-DD HH:mm') : dayjs().tz(this.financialMonitoringStore.defaultTimeZoneWithUtcOffset.timeZone).format('YYYY-MM-DD HH:mm');
     },
-    redirectToTransactionTab() {
+    redirectToTransactionTab: function () {
       const walletId = this.financialMonitoringStore.filtersTransactions.currentWalletId;
       if (this.typeOperation === this.OperationType.Expenses) {
         this.$router.push({ 
@@ -340,6 +399,32 @@ export default {
           query: { walletId } 
         });
       }
+    },
+    checkTimezoneWarning: function () {
+      if (this.financialMonitoringStore.isTimeZoneEnabled && this.financialMonitoringStore.defaultTimeZoneWithUtcOffset.timeZone !== Intl.DateTimeFormat().resolvedOptions().timeZone) {
+        let offset = dayjs().tz(getDetectedTimeZone()).utcOffset();
+        const hours = String(Math.floor(Math.abs(offset) / 60)).padStart(2, '0');
+        const minutes = String(Math.abs(offset) % 60).padStart(2, '0');
+        const sign = offset >= 0 ? '+' : '-';
+        offset = `${sign}${hours}:${minutes}`;
+
+        return `${getDetectedTimeZone()} (UTC${offset})`;
+      }
+    },
+    handleEditTransaction: function () {
+      if (this.isEditDatePicker && this.financialMonitoringStore.isTimeZoneEnabled && getDetectedTimeZone() !== this.financialMonitoringStore.defaultTimeZoneWithUtcOffset.timeZone && this.timeZone !== getDetectedTimeZone()) {
+        this.isDialogWarningEditDatePicker = true;
+      } else {
+        this.editTransaction();
+      }
+    },
+    saveOriginalTimeZone: function () {
+      this.typeSaveEditDatePicker = 'saveOriginalTimeZone';
+      this.editTransaction();
+    },
+    saveCurrentTimeZone: function () {
+      this.typeSaveEditDatePicker = 'saveCurrentTimeZone';
+      this.editTransaction();
     },
   },
 };
@@ -367,6 +452,19 @@ export default {
   color: red;
   margin-top: 10px;
   font-size: 15px;
+}
+
+.select-timeZone-modal {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+.select-timeZone-button-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
 }
 </style>
 

@@ -98,8 +98,8 @@ body {
   text-align: right;
   font-size: 15px;
   backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px); /* Для Safari */
-  transition: background-color 0.3s ease;
+  -webkit-backdrop-filter: blur(10px);
+  transition: background-color 0.5s ease;
   position: sticky;
   top: 0;
   z-index: 10;

@@ -87,10 +87,7 @@ export const useAuthenticationStore = defineStore('authenticationStore', {
       return this.isTokenValid(this.refreshToken);
     },
     async refreshTokenUpdate() {
-      console.log('Попытка обновления токенов...');
-
       if (!this.isRefreshTokenValid()) {
-        console.log('Refresh token недействителен');
         this.clearAuth();
         throw new Error('Refresh token expired');
       }
@@ -98,11 +95,6 @@ export const useAuthenticationStore = defineStore('authenticationStore', {
       try {
         const response = await ApiClient.post('/auth/refresh-token', {
           refreshToken: this.refreshToken,
-        });
-
-        console.log('Новые токены получены:', {
-          token: response.data.token,
-          refreshToken: response.data.refreshToken,
         });
 
         this.$patch({

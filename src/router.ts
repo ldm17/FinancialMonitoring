@@ -12,6 +12,7 @@ import Login from './pages/Login.vue';
 import FinancialMonitoring from './components/FinancialMonitoring/FinancialMonitoring.vue';
 import FinancialMonitoringAddNote from './components/FinancialMonitoring/FinancialMonitoringAddNote.vue';
 import FinancialMonitoringInfoNote from './components/FinancialMonitoring/FinancialMonitoringInfoNote.vue';
+import UserSettings from './pages/UserSettings.vue';
 
 const router = createRouter({
   history: createWebHistory(),
@@ -75,6 +76,11 @@ const router = createRouter({
           path: '/',
           redirect: '/expenses',
         },
+        {
+          path: 'settings/user/',
+          name: 'user-settings',
+          component: UserSettings,
+        },
       ],
     },
   ],
@@ -92,23 +98,17 @@ router.beforeEach(async (to, from, next) => {
   if (to.meta.requiresAuth) {
     try {
       if (!authenticationStore.isAuthenticated) {
-        console.log('Пользователь не аутентифицирован');
         throw new Error('Not authenticated');
       }
 
       if (!authenticationStore.isAccessTokenValid()) {
-        console.log('Access token истек. Проверка refresh token...');
-
         if (!authenticationStore.isRefreshTokenValid()) {
-          console.log('Refresh token тоже недействителен');
           throw new Error('Refresh token expired');
         }
 
-        console.log('Обновление токенов...');
         await authenticationStore.refreshTokenUpdate();
 
         if (!authenticationStore.isAccessTokenValid()) {
-          console.log('Токен не обновился после попытки');
           throw new Error('Token refresh failed');
         }
       }

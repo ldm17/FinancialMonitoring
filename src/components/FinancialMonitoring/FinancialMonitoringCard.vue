@@ -4,7 +4,7 @@
       <el-card style="margin-bottom: 15px;">
           <el-row :gutter="20">
             <el-col :span="12">
-              {{ typeGroupTransactions == GroupType.ByDate ? formatDate(group.date) : this.financialMonitoringStore.categories.get(group.items[0].categoryId)?.name }}
+              {{ typeGroupTransactions == GroupType.ByDate ? formatDate(group.date, 'dateWithoutTime') : this.financialMonitoringStore.categories.get(group.items[0].categoryId)?.name }}
             </el-col>
             <el-col :span="12" style="text-align: right">
               <span :style="{ color: typeOperation === OperationType.Expenses ? 'red' : 'green' }">{{ typeOperation === OperationType.Expenses ? '-' : '+' }}{{ group.items.reduce((sum, item) => sum + item.amount, 0) }}</span>
@@ -26,9 +26,9 @@
             <el-row :gutter="20" style="margin-top: 15px;">
               <el-col :span="12">
                 <div>
-                  {{ typeGroupTransactions == GroupType.ByDate ? this.financialMonitoringStore.categories.get(item.categoryId)?.name : formatDate(item.date)}}
+                  {{ typeGroupTransactions == GroupType.ByDate ? this.financialMonitoringStore.categories.get(item.categoryId)?.name : formatDate(item.date, 'dateWithoutTime')}}
                 </div>
-                <span>{{ item.date.split(' ')[1] }}</span>
+                 <span>{{ formatDate(item.date, 'time') }}</span>
               </el-col>
               <el-col style="text-align: right;" :span="12">
                 <span v-if="item.isFavorite">
@@ -142,7 +142,7 @@ export default {
         this.$emit('delete', id);
         ElMessage({
           type: 'success',
-          message: 'Запись удалена',
+          message: 'Запись успешно удалена',
         });
       })
       .catch(() => {

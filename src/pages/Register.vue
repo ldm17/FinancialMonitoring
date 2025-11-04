@@ -81,7 +81,7 @@ export default {
     async handleRegister() {
       try {
         const isValid = await this.$refs.formRef.validate();
-      
+
         if (!isValid) {
           return;
         }
@@ -101,11 +101,15 @@ export default {
 
         this.authenticationStore.login(token, refreshToken);
         ElMessage.success('Регистрация успешно завершена!');
-        this.$router.push({ 
-          name: 'expenses' 
+        this.$router.push({
+          name: 'expenses'
         });
       } catch (error) {
         console.error('Ошибка при аутентификации:', error);
+
+        if (error.request) {
+          ElMessage.error('Сервер недоступен. Пожалуйста, попробуйте позже');
+        }
       } finally {
         this.isLoading = false;
       }

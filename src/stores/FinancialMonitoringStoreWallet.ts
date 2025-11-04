@@ -1,6 +1,4 @@
 import { defineStore } from 'pinia';
-import axios from 'axios';
-import { format, parseISO } from 'date-fns';
 // eslint-disable-next-line import/extensions, import/no-unresolved
 import ApiClient from '@/api/ApiClient';
 // eslint-disable-next-line import/extensions, import/no-unresolved
@@ -37,7 +35,7 @@ export const useFinancialMonitoringStoreWallet = defineStore('financialMonitorin
           name: wallet.name,
           balance: wallet.balance,
           currency: wallet.currency,
-          createdAt: format(parseISO(wallet.createdAt), 'yyyy/MM/dd HH:mm'),
+          createdAt: wallet.createdAt,
           description: wallet.description,
         }));
 

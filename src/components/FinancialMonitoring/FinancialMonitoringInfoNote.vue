@@ -22,8 +22,7 @@
           </h1>
           <p>
             <el-icon><Calendar /></el-icon>
-            <!-- {{ transaction.date }} -->
-              {{ format(parseISO(transaction.date), 'yyyy/MM/dd HH:mm') }}
+              <span>{{ formatDate(transaction.createdAt, 'dateWithTime') }}</span>
           </p>
           <p v-if="transaction.description" style="display: flex;">
             <el-icon style="margin-right: 5px;"><EditPen /></el-icon>
@@ -46,6 +45,13 @@
 import { OperationType, useFinancialMonitoringStore } from "@/stores/FinancialMonitoringStore";
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { format, parseISO } from 'date-fns';
+import { formatDate } from '@/utils.js';
+import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 export default {
   name: "financial-monitoring-info-note",
@@ -72,6 +78,7 @@ export default {
     this.financialMonitoringStore.resetHeaderButtonHandler();
   },
   async created () {
+    await this.financialMonitoringStore.fetchTimeZone();
     this.typeOperation = Number(this.$route.query.currentMenuItem);
     await this.financialMonitoringStore.fetchCategories(this.typeOperation);
     await this.handleFetchTransaction();
@@ -83,6 +90,7 @@ export default {
       OperationType,
       format,
       parseISO,
+      formatDate: formatDate,
     };
   },
   methods: {
@@ -112,7 +120,7 @@ export default {
       .then(() => {
         ElMessage({
           type: 'success',
-          message: 'Запись удалена',
+          message: 'Запись успешно удалена',
         })
         this.financialMonitoringStore.deleteTransaction(id, this.typeOperation);
         this.$router.back();
@@ -141,7 +149,7 @@ export default {
         ElMessage.error('Не удалось добавить запись в помеченные');
       }
     },
-    handleAddTransactionButtonClick() {
+    handleAddTransactionButtonClick: function () {
       const type = this.typeOperation === OperationType.Expenses ? 'expense' : 'income';
       this.$router.push({ 
         name: 'add-note',

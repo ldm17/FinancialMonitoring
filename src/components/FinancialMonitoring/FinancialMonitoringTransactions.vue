@@ -137,13 +137,13 @@
 <script>
 import { useFinancialMonitoringStore } from "@/stores/FinancialMonitoringStore";
 import { useFinancialMonitoringStoreWallet } from "@/stores/FinancialMonitoringStoreWallet";
-import { format, parse } from "date-fns";
 import FinancialMonitoringRangeFilterModal from "./FinancialMonitoringRangeFilterModal.vue";
 import FinancialMonitoringCategoryList from "./FinancialMonitoringCategoryList.vue";
 import { formatDate, formatDateForTab } from "@/utils.js";
 import FinancialMonitoringCard from "./FinancialMonitoringCard.vue";
 import { OperationType, SortType, FilterType, GroupType } from "@/stores/FinancialMonitoringStore";
 import { ElMessage } from 'element-plus';
+import { format, parseISO } from 'date-fns';
 
 export default {
   name: "financial-monitoring-expenses",
@@ -186,6 +186,7 @@ export default {
     this.financialMonitoringStore.resetHeaderButtonHandler();
   },
   async created() {
+    await this.financialMonitoringStore.fetchTimeZone();
     const walletIdFromUrl = this.$route.query.walletId ? Number(this.$route.query.walletId) : null;
 
     const isSuccessFetchWallets = await this.financialMonitoringStoreWallet.fetchWallets();
@@ -272,6 +273,8 @@ export default {
       applyRangeFilter: false,
       isCategoryListDialogVisible: false,
       formatDate: formatDate,
+      format,
+      parseISO,
     };
   },
   methods: {
@@ -327,7 +330,7 @@ export default {
       const grouped = {};
 
       itemsArray.forEach(item => {
-        const dateKey = item.date.split(' ')[0];
+        const dateKey = format(parseISO(item.date), 'yyyy-MM-dd');
 
         const key = this.typeGroupTransactions === GroupType.ByDate ? dateKey : item.categoryId;
 
@@ -468,7 +471,9 @@ export default {
     async isFavoriteTransaction (id) {
       let transaction = await this.financialMonitoringStore.fetchNote(id);
       
-      transaction.isFavorite = !transaction.isFavorite
+      transaction.isFavorite = !transaction.isFavorite;
+      transaction.createdAtUtc = transaction.createdAt;
+
       let isSuccessUpdateIsFavorite = await this.financialMonitoringStore.editNote(transaction);
 
       if (isSuccessUpdateIsFavorite) {
@@ -495,7 +500,7 @@ export default {
       this.$router.push({ 
         name: 'add-note', 
         params: { type: type, action: 'edit', id: id }, 
-        query: { currentMenuItem: this.typeOperation } 
+        query: { currentMenuItem: this.typeOperation, walletId: this.financialMonitoringStore.filtersTransactions.currentWalletId } 
       });
     },
     openInfoNote: function (id) {
