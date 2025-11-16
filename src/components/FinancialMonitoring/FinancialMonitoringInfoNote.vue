@@ -22,8 +22,9 @@
           </h1>
           <p>
             <el-icon><Calendar /></el-icon>
-              <span>{{ formatDate(transaction.createdAt, 'dateWithTime') }}</span>
+              <span>{{ formatDateWithUtc(transaction.createdAt, 'dateWithTime') }}</span>
           </p>
+          <p v-if="financialMonitoringStoreUser.isTransactionTimeZoneVisible">{{ transaction.timeZone }}</p>
           <p v-if="transaction.description" style="display: flex;">
             <el-icon style="margin-right: 5px;"><EditPen /></el-icon>
             <span style="color: grey">{{ transaction.description }}</span>
@@ -43,9 +44,11 @@
 
 <script>
 import { OperationType, useFinancialMonitoringStore } from "@/stores/FinancialMonitoringStore";
+import { useFinancialMonitoringStoreUser } from "@/stores/FinancialMonitoringStoreUser";
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { format, parseISO } from 'date-fns';
 import { formatDate } from '@/utils.js';
+import { formatDateWithUtc } from '@/utils.js';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -64,7 +67,8 @@ export default {
   components: {},
   setup() {
     const financialMonitoringStore = useFinancialMonitoringStore();
-    return { financialMonitoringStore };
+    const financialMonitoringStoreUser = useFinancialMonitoringStoreUser();
+    return { financialMonitoringStore, financialMonitoringStoreUser };
   },
   watch: {
     currentMenuItem(newValue) {
@@ -78,7 +82,7 @@ export default {
     this.financialMonitoringStore.resetHeaderButtonHandler();
   },
   async created () {
-    await this.financialMonitoringStore.fetchTimeZone();
+    await this.financialMonitoringStoreUser.fetchTimeZone();
     this.typeOperation = Number(this.$route.query.currentMenuItem);
     await this.financialMonitoringStore.fetchCategories(this.typeOperation);
     await this.handleFetchTransaction();
@@ -91,6 +95,7 @@ export default {
       format,
       parseISO,
       formatDate: formatDate,
+      formatDateWithUtc: formatDateWithUtc,
     };
   },
   methods: {

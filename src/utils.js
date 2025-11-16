@@ -3,7 +3,7 @@ import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 
 // eslint-disable-next-line import/extensions, import/no-unresolved
-import { useFinancialMonitoringStore } from '@/stores/financialMonitoringStore';
+import { useFinancialMonitoringStoreUser, FormatDateType } from '@/stores/financialMonitoringStoreUser';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -42,10 +42,28 @@ export const DaysOfWeek = {
 
 export const FormatType = {
   DEFAULT: 'default',
+  FULL_DATE_SHORT_WEEKDAY: 'fullDateShortWeekday',
   DATE_WITHOUT_TIME: 'dateWithoutTime',
   DATE_WITH_TIME: 'dateWithTime',
   TIME: 'time',
 };
+
+export const DATE_FORMATS = {
+  [FormatDateType.DD_MM_YYYY_DOT]: 'DD.MM.YYYY',
+  [FormatDateType.DD_MM_YYYY_DASH]: 'DD-MM-YYYY',
+  [FormatDateType.DD_MM_YYYY_SLASH]: 'DD/MM/YYYY',
+  [FormatDateType.MM_DD_YYYY_SLASH]: 'MM/DD/YYYY',
+  [FormatDateType.YYYY_MM_DD_DOT]: 'YYYY.MM.DD',
+  [FormatDateType.ISO_8601]: 'YYYY-MM-DD',
+  [FormatDateType.YYYY_MM_DD_SLASH]: 'YYYY/MM/DD',
+};
+
+function to12Hour(hourStr) {
+  const hour = Number(hourStr);
+  const meridiem = hour >= 12 ? 'PM' : 'AM';
+  const hour12 = (((hour + 11) % 12) + 1).toString().padStart(2, '0');
+  return { hour12, meridiem };
+}
 
 export function formatDate(dateString, formatType) {
   const timeMatch = dateString.match(/T(\d{2}):(\d{2})/);
@@ -55,7 +73,10 @@ export function formatDate(dateString, formatType) {
 
   const date = dayjs(dateString);
 
-  if (formatType === FormatType.DATE_WITHOUT_TIME) {
+  const financialMonitoringStoreUser = useFinancialMonitoringStoreUser();
+  const use12HFormat = financialMonitoringStoreUser.isUse12HFormat;
+
+  if (formatType === FormatType.FULL_DATE_SHORT_WEEKDAY) {
     const day = date.date();
     const month = date.month() + 1;
     const year = date.year();
@@ -66,41 +87,41 @@ export function formatDate(dateString, formatType) {
     return `${day} ${monthsInRussian[month - 1]} ${year}, ${dayOfWeek}`;
   }
 
+  if (formatType === FormatType.DATE_WITHOUT_TIME) {
+    const pattern = DATE_FORMATS[financialMonitoringStoreUser.currentFormatDateType] || DATE_FORMATS[FormatDateType.DD_MM_YYYY_DOT];
+    const formattedDate = date.format(pattern);
+
+    return formattedDate;
+  }
+
   if (formatType === FormatType.DATE_WITH_TIME) {
-    const day = date.format('DD');
-    const month = date.format('MM');
-    const year = date.format('YYYY');
+    const pattern = DATE_FORMATS[financialMonitoringStoreUser.currentFormatDateType] || DATE_FORMATS[FormatDateType.DD_MM_YYYY_DOT];
+    const formattedDate = date.format(pattern);
 
-    const explicitOffset = dateString.match(/([+-]\d{2}:\d{2})$/)?.[1] ?? '';
+    if (use12HFormat) {
+      const { hour12, meridiem } = to12Hour(rawHours);
+      return `${formattedDate} ${hour12}:${rawMinutes} ${meridiem}`;
+    }
 
-    const financialMonitoringStore = useFinancialMonitoringStore();
-    const defaultTimeZoneWithUtcOffset = financialMonitoringStore.defaultTimeZoneWithUtcOffset.timeZone;
-
-    // Привязываем дату к дефолтной зоне пользователя
-    // Переводим только дату (день/месяц/год) в нужную зону,
-    // часы‑минуты оставляем как есть (keepLocalTime = true)
-    const dateStringWithTimeZone = date.tz(defaultTimeZoneWithUtcOffset, true);
-    const zoneOffset = dateStringWithTimeZone.format('Z'); // например "+01:00"
-
-    const utcOffsetInfo = explicitOffset && explicitOffset !== zoneOffset ? `(UTC${explicitOffset})` : '';
-
-    return `${day}.${month}.${year} ${rawTime} ${utcOffsetInfo}`.trim();
+    return `${formattedDate} ${rawTime}`;
   }
 
   if (formatType === FormatType.TIME) {
-    const financialMonitoringStore = useFinancialMonitoringStore();
-    const defaultTimeZoneWithUtcOffset = financialMonitoringStore.defaultTimeZoneWithUtcOffset.timeZone;
+    if (use12HFormat) {
+      const { hour12, meridiem } = to12Hour(rawHours);
+      return `${hour12}:${rawMinutes} ${meridiem}`;
+    }
 
-    const offset = dateString.match(/([+-]\d{2}:\d{2})$/)?.[1] || null;
-
-    const dateStringWithTimeZone = dayjs(dateString).tz(defaultTimeZoneWithUtcOffset);
-
-    const utcOffsetInfo = offset !== dateStringWithTimeZone.format('Z') ? `(UTC${offset})` : '';
-
-    return `${rawTime} ${utcOffsetInfo}`.trim();
+    return `${rawTime} `;
   }
 
   return dateString;
+}
+
+export function formatDateWithUtc(dateString, formatType) {
+  const base = formatDate(dateString, formatType);
+  const explicitOffset = dateString.match(/([+-]\d{2}:\d{2})$/)?.[1] ?? '';
+  return explicitOffset ? `${base} (UTC${explicitOffset})` : base;
 }
 
 export function formatDateForTab(date) {
@@ -119,4 +140,9 @@ export function getDetectedTimeZone() {
   return 'UTC';
 }
 
-export default { formatDate, formatDateForTab };
+export default {
+  formatDate,
+  formatDateForTab,
+  getDetectedTimeZone,
+  formatDateWithUtc,
+};

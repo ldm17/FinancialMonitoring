@@ -77,8 +77,6 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     categories: new Map<number, Category>(),
     selectedOperationTypeCategories: OperationType.Expenses,
     headerButtonHandler: null,
-    defaultTimeZoneWithUtcOffset: null,
-    isTimeZoneEnabled: null,
   }),
   actions: {
     setPage(page: string, params: object) {
@@ -275,45 +273,6 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     },
     resetHeaderButtonHandler() {
       this.headerButtonHandler = null;
-    },
-    async editTimeZone(updatedTimeZone: any) {
-      try {
-        const url = '/usersettings/update-timezone';
-        await ApiClient.put(url, updatedTimeZone);
-
-        return true;
-      } catch (error) {
-        console.error('Ошибка при редактировании тайм-зоны:', error);
-        return false;
-      }
-    },
-    async fetchTimeZone() {
-      try {
-        const url = '/usersettings';
-        const response = await ApiClient.get(url);
-
-        this.defaultTimeZoneWithUtcOffset = response.data;
-        this.isTimeZoneEnabled = response.data.isTimeZoneEnabled;
-
-        return {
-          timeZoneWithUtcOffset: response.data,
-          isTimeZoneEnabled: response.data.isTimeZoneEnabled,
-        };
-      } catch (error) {
-        console.error('Ошибка при загрузке тайм-зоны:', error);
-        return null;
-      }
-    },
-    async editIsTimezoneEnabled(updateIsTimezoneEnabled: any) {
-      try {
-        const url = '/usersettings/update-timezone-enabled';
-        await ApiClient.put(url, updateIsTimezoneEnabled);
-
-        return true;
-      } catch (error) {
-        console.error('Ошибка при изменении настройки учитывания часового пояса устройства:', error);
-        return false;
-      }
     },
   },
 });

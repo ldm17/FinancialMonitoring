@@ -137,6 +137,7 @@
 <script>
 import { useFinancialMonitoringStore } from "@/stores/FinancialMonitoringStore";
 import { useFinancialMonitoringStoreWallet } from "@/stores/FinancialMonitoringStoreWallet";
+import { useFinancialMonitoringStoreUser } from "@/stores/FinancialMonitoringStoreUser";
 import FinancialMonitoringRangeFilterModal from "./FinancialMonitoringRangeFilterModal.vue";
 import FinancialMonitoringCategoryList from "./FinancialMonitoringCategoryList.vue";
 import { formatDate, formatDateForTab } from "@/utils.js";
@@ -161,8 +162,9 @@ export default {
   setup() {
     const financialMonitoringStore = useFinancialMonitoringStore();
     const financialMonitoringStoreWallet = useFinancialMonitoringStoreWallet();
+    const financialMonitoringStoreUser = useFinancialMonitoringStoreUser();
 
-    return { financialMonitoringStore, financialMonitoringStoreWallet };
+    return { financialMonitoringStore, financialMonitoringStoreWallet, financialMonitoringStoreUser };
   },
   watch: {
     watchedNotesArray: {
@@ -186,7 +188,7 @@ export default {
     this.financialMonitoringStore.resetHeaderButtonHandler();
   },
   async created() {
-    await this.financialMonitoringStore.fetchTimeZone();
+    await this.financialMonitoringStoreUser.fetchTimeZone();
     const walletIdFromUrl = this.$route.query.walletId ? Number(this.$route.query.walletId) : null;
 
     const isSuccessFetchWallets = await this.financialMonitoringStoreWallet.fetchWallets();

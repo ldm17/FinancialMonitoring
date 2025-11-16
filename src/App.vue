@@ -8,8 +8,8 @@
 </template>
 
 <script>
-import FinancialMonitoring from './components/FinancialMonitoring/FinancialMonitoring.vue';
 import ThemeSwitcher from './components/FinancialMonitoring/ThemeSwitcher.vue';
+import { useFinancialMonitoringStoreUser } from './stores/FinancialMonitoringStoreUser';
 
 import { ElConfigProvider } from 'element-plus';
 import ru from 'element-plus/es/locale/lang/ru';
@@ -21,18 +21,23 @@ import 'dayjs/locale/ru';
 export default {
   name: "App",
   components: {
-    FinancialMonitoring,
     ElConfigProvider,
     ThemeSwitcher
   },
+  setup() {
+    const financialMonitoringStoreUser = useFinancialMonitoringStoreUser();
+
+    const locales = {
+      ru,
+      en,
+    };
+
+    const locale = locales[financialMonitoringStoreUser.currentLocale] || ru;
+
+    return { locale, financialMonitoringStoreUser };
+  },
   created() {
     dayjs.locale('ru');
-  },
-  data() {
-    return {
-      locale: ru,
-      locales: { en, ru }
-    };
   },
   methods: {},
 };

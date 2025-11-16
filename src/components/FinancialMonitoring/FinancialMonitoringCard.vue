@@ -4,7 +4,7 @@
       <el-card style="margin-bottom: 15px;">
           <el-row :gutter="20">
             <el-col :span="12">
-              {{ typeGroupTransactions == GroupType.ByDate ? formatDate(group.date, 'dateWithoutTime') : this.financialMonitoringStore.categories.get(group.items[0].categoryId)?.name }}
+              {{ typeGroupTransactions == GroupType.ByDate ? formatDate(group.date, 'fullDateShortWeekday') : this.financialMonitoringStore.categories.get(group.items[0].categoryId)?.name }}
             </el-col>
             <el-col :span="12" style="text-align: right">
               <span :style="{ color: typeOperation === OperationType.Expenses ? 'red' : 'green' }">{{ typeOperation === OperationType.Expenses ? '-' : '+' }}{{ group.items.reduce((sum, item) => sum + item.amount, 0) }}</span>
@@ -26,10 +26,15 @@
             <el-row :gutter="20" style="margin-top: 15px;">
               <el-col :span="12">
                 <div>
-                  {{ typeGroupTransactions == GroupType.ByDate ? this.financialMonitoringStore.categories.get(item.categoryId)?.name : formatDate(item.date, 'dateWithoutTime')}}
+                  {{ typeGroupTransactions == GroupType.ByDate ? this.financialMonitoringStore.categories.get(item.categoryId)?.name : formatDate(item.date, 'fullDateShortWeekday')}}
                 </div>
-                 <span>{{ formatDate(item.date, 'time') }}</span>
+                 <span>{{ formatDateWithUtc(item.date, 'time') }}</span>
+
+                <div>
+                  <span v-if="financialMonitoringStoreUser.isTransactionTimeZoneVisible">{{ item.timeZone }}</span>
+                </div>
               </el-col>
+
               <el-col style="text-align: right;" :span="12">
                 <span v-if="item.isFavorite">
                   <el-icon size="small"><CollectionTag /></el-icon>
@@ -63,8 +68,10 @@
 
 <script>
 import { useFinancialMonitoringStore } from "@/stores/FinancialMonitoringStore";
+import { useFinancialMonitoringStoreUser } from "@/stores/FinancialMonitoringStoreUser";
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { OperationType } from "@/stores/FinancialMonitoringStore";
+import { formatDateWithUtc } from '@/utils.js';
 
 export default {
   name: "financial-monitoring-card",
@@ -96,7 +103,8 @@ export default {
   },
   setup() {
     const financialMonitoringStore = useFinancialMonitoringStore();
-    return { financialMonitoringStore };
+    const financialMonitoringStoreUser = useFinancialMonitoringStoreUser();
+    return { financialMonitoringStore, financialMonitoringStoreUser };
   },
   async created() {
     const isSuccessFetchCategories = await this.financialMonitoringStore.fetchCategories(this.typeOperation);
@@ -104,6 +112,8 @@ export default {
     if (isSuccessFetchCategories === null) {
       ElMessage.error('Не удалось загрузить категории');
     };
+
+    await this.financialMonitoringStoreUser.fetchTimeZone();
   },
   watch: {
     currentMenuItem(newValue) {
@@ -114,6 +124,7 @@ export default {
     return {
       typeOperation: this.currentMenuItem,
       OperationType,
+      formatDateWithUtc: formatDateWithUtc,
     };
   },
   methods: {

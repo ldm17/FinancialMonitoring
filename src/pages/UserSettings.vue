@@ -20,25 +20,43 @@
         />
       </el-select>
 
-      <p><el-checkbox v-model="isTimezoneEnabled" @change="handleEditIsTimezoneEnabled()" label="Учитывать часовой пояс устройства"/></p>
-
-      <label>Часовой пояс устройства</label>
+      <label style="margin-top: 15px;">Часовой пояс устройства</label>
       <el-input v-model="combinedUserTimeZone" style="width: 250px" readonly></el-input>
+
+      <div class="user-settings-checkbox-container">
+        <el-checkbox v-model="isTimezoneEnabled" @change="handleEditIsTimezoneEnabled()" label="Учитывать часовой пояс устройства"/>
+        <el-checkbox v-model="isTransactionTimeZoneVisible" @change="handleEditIsTransactionTimeZoneVisible()" label="Отображать часовой пояс транзакций"/>
+        <el-checkbox v-model="isUse12HFormat" @change="handleEditIsUse12HFormat()" label="12-ти часовой формат времени"/>
+      </div>
+
+      <label>Формат даты</label>
+      <el-select v-model="financialMonitoringStoreUser.currentFormatDateType" style="width: 250px" @change="handleEditFormatDateType">
+        <el-option :value="FormatDateType.DD_MM_YYYY_DOT" label="DD.MM.YYYY"></el-option>
+        <el-option :value="FormatDateType.DD_MM_YYYY_DASH" label="DD-MM-YYYY"></el-option>
+        <el-option :value="FormatDateType.DD_MM_YYYY_SLASH" label="DD/MM/YYYY"></el-option>
+        <el-option :value="FormatDateType.MM_DD_YYYY_SLASH" label="MM/DD/YYYY"></el-option>
+        <el-option :value="FormatDateType.YYYY_MM_DD_DOT" label="YYYY.MM.DD"></el-option>
+        <el-option :value="FormatDateType.ISO_8601" label="YYYY-MM-DD"></el-option>
+        <el-option :value="FormatDateType.YYYY_MM_DD_SLASH" label="YYYY/MM/DD"></el-option>
+      </el-select>
     </div>
   </div>
 </template>
 
 <script>
 import { OperationType, useFinancialMonitoringStore } from '@/stores/FinancialMonitoringStore';
+import { useFinancialMonitoringStoreUser } from '@/stores/FinancialMonitoringStoreUser';
 import { ElMessage } from 'element-plus';
 import { getDetectedTimeZone } from '@/utils.js';
+import { FormatDateType } from '@/stores/FinancialMonitoringStoreUser';
 
 export default {
   name: "user-settings",
   setup() {
     const financialMonitoringStore = useFinancialMonitoringStore();
+    const financialMonitoringStoreUser = useFinancialMonitoringStoreUser();
 
-    return { financialMonitoringStore };
+    return { financialMonitoringStore, financialMonitoringStoreUser};
   },
   mounted() {
     this.financialMonitoringStore.setHeaderButtonHandler(this.handleAddTransactionButtonClick);
@@ -64,6 +82,9 @@ export default {
       currentUserTimeZone: null,
       isTimezoneEnabled: false,
       getDetectedTimeZone: getDetectedTimeZone,
+      isTransactionTimeZoneVisible: false,
+      isUse12HFormat: false,
+      FormatDateType,
     };
   },
   methods: {
@@ -138,7 +159,7 @@ export default {
         timeZone: this.selectedOption.timeZone,
       };
 
-      const isSuccsess = await this.financialMonitoringStore.editTimeZone(updatedTimeZone);
+      const isSuccsess = await this.financialMonitoringStoreUser.editTimeZone(updatedTimeZone);
 
       if (isSuccsess) {
         ElMessage.success('Тайм-зона успешно обновлена');
@@ -147,11 +168,13 @@ export default {
       }
     },
     async handleFetchTimeZone () {
-      const result = await this.financialMonitoringStore.fetchTimeZone();
+      const result = await this.financialMonitoringStoreUser.fetchTimeZone();
       
       if (result !== null) {
         this.selectedOption = result.timeZoneWithUtcOffset;
         this.isTimezoneEnabled = result.isTimeZoneEnabled;
+        this.isTransactionTimeZoneVisible = result.isTransactionTimeZoneVisible;
+        this.isUse12HFormat = result.isUse12HFormat;
       } else {
         ElMessage.error('Не удалось загрузить тайм-зону');
       }
@@ -161,14 +184,14 @@ export default {
         isTimezoneEnabled: this.isTimezoneEnabled,
       };
 
-      const isSuccsess = await this.financialMonitoringStore.editIsTimezoneEnabled(updateIsTimezoneEnabled);
+      const isSuccsess = await this.financialMonitoringStoreUser.editIsTimezoneEnabled(updateIsTimezoneEnabled);
 
       if (isSuccsess && this.isTimezoneEnabled) {
         ElMessage.success('Учитывание часового пояса устройства успешно включено');
-      } else if (isSuccsess && !this.isTimezoneEnabled ) {
+      } else if (isSuccsess && !this.isTimezoneEnabled) {
         ElMessage.success('Учитывание часового пояса устройства успешно выключено');
       } else {
-        ElMessage.error('Не удалось включить учитывание часового пояса устройства');
+        ElMessage.error('Не удалось изменить учитывание часового пояса устройства');
       }
     },
     handleAddTransactionButtonClick() {
@@ -177,6 +200,49 @@ export default {
         params: { type: 'expense', action: 'new' },
         query: { currentMenuItem: OperationType.Expenses, walletId: this.financialMonitoringStore.filtersTransactions.currentWalletId } 
       });
+    },
+    async handleEditIsTransactionTimeZoneVisible() {
+      const updateIsTransactionTimeZoneVisible = {
+        isTransactionTimeZoneVisible: this.isTransactionTimeZoneVisible,
+      };
+
+      const isSuccsess = await this.financialMonitoringStoreUser.editIsTransactionTimeZoneVisible(updateIsTransactionTimeZoneVisible);
+
+      if (isSuccsess && this.isTransactionTimeZoneVisible) {
+        ElMessage.success('Отображение часового пояса транзакций успешно включено');
+      } else if (isSuccsess && !this.isTransactionTimeZoneVisible) {
+        ElMessage.success('Отображение часового пояса транзакций успешно выключено');
+      } else {
+        ElMessage.error('Не удалось изменить отображение часового пояса транзакций');
+      }
+    },
+    async handleEditIsUse12HFormat() {
+      const updateIsUse12HFormat = {
+        isUse12HFormat: this.isUse12HFormat,
+      };
+
+      const isSuccsess = await this.financialMonitoringStoreUser.editIsUse12HFormat(updateIsUse12HFormat);
+
+      if (isSuccsess && this.isUse12HFormat) {
+        ElMessage.success('12-ти часовой формат времени успешно включен');
+      } else if (isSuccsess && !this.isUse12HFormat) {
+        ElMessage.success('12-ти часовой формат времени успешно выключен');
+      } else {
+        ElMessage.error('Не удалось изменить формат времени');
+      }
+    },
+    async handleEditFormatDateType() {
+      const updateFormatDateType = {
+        FormatDateType: this.financialMonitoringStoreUser.currentFormatDateType,
+      };
+
+      const isSuccsess = await this.financialMonitoringStoreUser.editFormatDateType(updateFormatDateType);
+
+      if (isSuccsess) {
+        ElMessage.success('Формат даты успешно изменён');
+      } else {
+        ElMessage.error('Не удалось изменить формат даты');
+      }
     },
   },
 };
@@ -197,10 +263,13 @@ export default {
     width: 250px;
     text-align: left;
   }
+}
 
-  p {
-    text-align: center;
-    width: 500px;
-  }
+.user-settings-checkbox-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 15px;
+  width: 250px;
 }
 </style>
