@@ -2,7 +2,7 @@
   <div>
     <div class="wallets__card" v-if="financialMonitoringStoreWallet.wallets.length">
       <el-card v-for="wallet in financialMonitoringStoreWallet.wallets" :key="wallet.id" style="margin-bottom: 15px;">
-        <div class="visible-actions-note">
+        <div class="visible-actions-transaction">
           <el-row :gutter="20">
             <el-col :span="16">
               <div>
@@ -87,7 +87,7 @@ export default {
   methods: {
     openEditWallet: function (id) {
       this.$router.push({ 
-        name: 'wallet-edit-settings', 
+        name: 'wallet-form-settings', 
         params: { action: 'edit', id: id } 
       });
     },
@@ -127,7 +127,7 @@ export default {
     },
     handleAddWalletButtonClick() {
       this.$router.push({ 
-        name: 'wallet-edit-settings', 
+        name: 'wallet-form-settings', 
         params: { action: 'new' } 
       });
     }
@@ -135,11 +135,11 @@ export default {
 };
 </script>
 <style lang="scss">
-.visible-actions-note .el-button {
+.visible-actions-transaction .el-button {
   visibility: hidden;
 }
 
-.visible-actions-note:hover .el-button {
+.visible-actions-transaction:hover .el-button {
   visibility: visible;
 }
 

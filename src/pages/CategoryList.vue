@@ -49,6 +49,7 @@
         center
         align-center
         draggable
+        close-on-press-escape
       >
         <div class="custom-info-delete-category">
           <p>Удалить категорию?</p>
@@ -73,24 +74,24 @@
     </div>
 
     <div>
-      <category-edit
+      <category-form-modal
         v-if="isCategoryAddModalVisible"
         :isAddCategory="true"
         @close="isCategoryAddModalVisible = false"
         @category-added="handleCategoryAdded"
       >
-      </category-edit>
+      </category-form-modal>
     </div>
 
     <div>
-      <category-edit
-      v-if="isCategoryEditModal"
+      <category-form-modal
+      v-if="isCategoryFormModal"
       :isEditCategory="true"
       :categoryIdToEdit="categoryIdToEdit"
       :typeOperation="typeOperation"
-      @close="isCategoryEditModal = false;"
+      @close="isCategoryFormModal = false;"
       >
-      </category-edit>
+      </category-form-modal>
     </div>
 
   </div>
@@ -99,7 +100,7 @@
 <script>
 import { OperationType, useFinancialMonitoringStore } from "@/stores/FinancialMonitoringStore";
 import { ElMessage } from "element-plus";
-import CategoryEdit from "./CategoryEdit.vue";
+import CategoryFormModal from "./CategoryFormModal.vue";
 
 export default {
   name: "category-list-settings",
@@ -108,7 +109,7 @@ export default {
     return { financialMonitoringStore };
   },
   components: {
-    CategoryEdit,
+    CategoryFormModal,
   },
   watch: {
     async typeOperation(newTypeOperation) {
@@ -142,7 +143,7 @@ export default {
       filterCategory: '',
       isConfirmCategoryDeleteDialogVisible: false,
       categoryIdToDelete: null,
-      isCategoryEditModal: false,
+      isCategoryFormModal: false,
       categoryIdToEdit: null,
       isCategoryAddModalVisible: false,
     }
@@ -162,7 +163,7 @@ export default {
     },
     openEditCategory: function (id) {
       this.categoryIdToEdit = id;
-      this.isCategoryEditModal = true;
+      this.isCategoryFormModal = true;
     },
     filterNode(value, data) {
       if (!value) {

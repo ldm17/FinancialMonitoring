@@ -38,7 +38,7 @@ import { useAuthenticationStore } from "@/stores/AuthenticationStore";
 import { ElMessage } from 'element-plus';
 
 export default {
-  name: "wallet-edit-settings",
+  name: "wallet-form-settings",
   props: ['action', 'id'],
   components: {},
   setup() {

@@ -1,6 +1,6 @@
 <template>
   <div class="range-filter-modal">
-    <el-dialog model-value title="Выберите диапазон сумм" width="500" center align-center>
+    <el-dialog model-value title="Выберите диапазон сумм" width="500" center align-center @close="backToHome()" close-on-press-escape>
       <div class="range-filter-modal-content">
         <div class="range-filter-input-container">
           <el-input style="width: 150px" v-model="selectedFilterMinAmount" placeholder="От" />
@@ -20,7 +20,7 @@
 import { useFinancialMonitoringStore } from "@/stores/FinancialMonitoringStore";
 
 export default {
-  name: "financial-monitoring-range-filter",
+  name: "range-filter-modal",
   setup() {
     const financialMonitoringStore = useFinancialMonitoringStore();
     return { financialMonitoringStore };

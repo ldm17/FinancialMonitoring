@@ -4,7 +4,7 @@ import ApiClient from '@/api/ApiClient';
 // eslint-disable-next-line import/extensions, import/no-unresolved
 import { useFinancialMonitoringStore } from './FinancialMonitoringStore';
 
-interface Note {
+interface Transaction {
   date?: string;
 }
 
@@ -56,12 +56,12 @@ export const useFinancialMonitoringStoreWallet = defineStore('financialMonitorin
         return null;
       }
     },
-    async addWallet(note: Note = {}) {
+    async addWallet(transaction: Transaction = {}) {
       try {
         const url = '/wallets';
 
         await ApiClient.post(url, {
-          ...note,
+          ...transaction,
         });
         await this.fetchWallets();
       } catch (error) {
