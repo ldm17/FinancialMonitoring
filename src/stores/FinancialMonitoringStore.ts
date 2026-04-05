@@ -10,7 +10,7 @@ import ApiClient from '@/api/ApiClient';
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
-interface Expense {
+interface Transaction {
   id: number;
   categoryId: number;
   amount: number;
@@ -72,8 +72,8 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     },
     currentPageTitle: '',
     pageParams: {},
-    expenses: [] as Expense[],
-    incomes: [] as Expense[],
+    expenses: [] as Transaction[],
+    incomes: [] as Transaction[],
     categories: new Map<number, Category>(),
     selectedOperationTypeCategories: OperationType.Expenses,
     headerButtonHandler: null,
@@ -89,31 +89,31 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     setPageParams(params: number) {
       this.pageParams = params;
     },
-    async fetchNotes(typeOperation: number, currentWalletId: number) {
+    async fetchTransactions(typeOperation: number, currentWalletId: number) {
       try {
         const url = `/transactions?operationType=${typeOperation}&walletId=${currentWalletId}`;
-        const notesArray = typeOperation === OperationType.Expenses ? 'expenses' : 'incomes';
+        const transactionsArray = typeOperation === OperationType.Expenses ? 'expenses' : 'incomes';
 
-        const response = await ApiClient.get<Expense[]>(url);
+        const response = await ApiClient.get<Transaction[]>(url);
 
-        this[notesArray] = response.data.map((note) => ({
-          id: note.id,
-          categoryId: note.categoryId,
-          amount: note.amount,
-          date: (note as any).createdAt,
-          description: note.description,
-          isIgnoredInCalculation: note.isIgnoredInCalculation,
-          isFavorite: note.isFavorite,
-          operationType: note.operationType,
-          walletId: note.walletId,
-          timeZone: note.timeZone,
+        this[transactionsArray] = response.data.map((transaction) => ({
+          id: transaction.id,
+          categoryId: transaction.categoryId,
+          amount: transaction.amount,
+          date: (transaction as any).createdAt,
+          description: transaction.description,
+          isIgnoredInCalculation: transaction.isIgnoredInCalculation,
+          isFavorite: transaction.isFavorite,
+          operationType: transaction.operationType,
+          walletId: transaction.walletId,
+          timeZone: transaction.timeZone,
         }));
       } catch (error) {
         console.error('Ошибка при загрузке транзакций:', error);
         throw error;
       }
     },
-    async fetchNote(id: number) {
+    async fetchTransaction(id: number) {
       try {
         const url = `/transactions/${id}`;
         const response = await ApiClient.get(url);
@@ -125,13 +125,13 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
       }
     },
     // eslint-disable-next-line default-param-last
-    async addNote(request: any, typeOperation: number) {
+    async addTransaction(request: any, typeOperation: number) {
       try {
         const url = '/transactions';
         const walletId = this.filtersTransactions.currentWalletId;
 
         await ApiClient.post(url, request);
-        await this.fetchNotes(typeOperation, walletId);
+        await this.fetchTransactions(typeOperation, walletId);
       } catch (error) {
         console.error('Ошибка при добавлении записи:', error);
         return false;
@@ -139,10 +139,10 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
 
       return true;
     },
-    async editNote(updatedExpense: any) {
+    async editTransaction(updatedTransaction: any) {
       try {
-        const url = `/transactions/${updatedExpense.id}`;
-        await ApiClient.put(url, updatedExpense);
+        const url = `/transactions/${updatedTransaction.id}`;
+        await ApiClient.put(url, updatedTransaction);
 
         return true;
       } catch (error) {
@@ -155,14 +155,14 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
         const walletId = this.filtersTransactions.currentWalletId;
 
         await ApiClient.delete(`/transactions/${id}`);
-        await this.fetchNotes(typeOperation, walletId);
+        await this.fetchTransactions(typeOperation, walletId);
       } catch (error) {
         console.error('Ошибка при удалении записи:', error);
       }
     },
     getItemsByRangeDate(typeOperation: number, startDate: Date, endDate: Date) {
-      const notesArray = typeOperation === OperationType.Expenses ? this.expenses : this.incomes;
-      const itemsArray = notesArray.filter((item: { date: string }) => {
+      const transactionsArray = typeOperation === OperationType.Expenses ? this.expenses : this.incomes;
+      const itemsArray = transactionsArray.filter((item: { date: string }) => {
         const date = new Date(item.date);
         return date >= startDate && date <= endDate;
       });

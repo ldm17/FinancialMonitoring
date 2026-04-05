@@ -46,23 +46,23 @@
         </div>
       </el-select>
 
-      <el-dialog v-model="isCategoryListDialogVisible" title="Выберите категорию" width="500" center align-center @close="handleCloseCategoryListDialog">
+      <el-dialog v-model="isCategoryListDialogVisible" title="Выберите категорию" width="500" center align-center @close="handleCloseCategoryListDialog" close-on-press-escape>
         <span>
-          <financial-monitoring-category-list
+          <category-list-modal
           ref="categoryListDialog"
           :typeOperation="typeOperation"
           @category-selected="onCategorySelected">
-          </financial-monitoring-category-list>
+          </category-list-modal>
         </span>
       </el-dialog>
 
       <div v-if="isFilterByRangeOfAmountsVisible">
-        <financial-monitoring-range-filter-modal
+        <range-filter-modal
           :selected-min-amount="selectedFilterMinAmount"
           :selected-max-amount="selectedFilterMaxAmount"
           @update-filter="onRangeOfAmountsSelected"
-          @close="handleClose">
-        </financial-monitoring-range-filter-modal>
+          @close="handleCloseFilterByRangeOfAmountsDialog">
+        </range-filter-modal>
       </div>
 
       <div>
@@ -76,6 +76,17 @@
         <el-option :value="GroupType.ByDate" label="По дате"></el-option>
         <el-option :value="GroupType.ByCategories" label="По категориям"></el-option>
       </el-select>
+
+      <div v-if="isResetSortFilterButton" class="button-reset-sort-filter">
+        <el-tooltip
+          effect="light"
+          placement="right"
+          :content="'Сбросить сортировку и фильтрацию'">
+            <el-button @click="resetSortFilter()">
+              <el-icon><CloseBold /></el-icon>
+            </el-button>
+        </el-tooltip>
+      </div>
     </div>
 
     <div>
@@ -124,9 +135,9 @@
         :getWordByType="getWordByType"
         :GroupType="GroupType"
         :currentMenuItem="typeOperation"
-        @openInfoNote="openInfoNote"
+        @openTransactionInfo="openTransactionInfo"
         @favorite="isFavoriteTransaction"
-        @edit="openEditNote"
+        @edit="openTransactionForm"
         @delete="deleteTransaction"
       />
     </div>
@@ -138,16 +149,17 @@
 import { useFinancialMonitoringStore } from "@/stores/FinancialMonitoringStore";
 import { useFinancialMonitoringStoreWallet } from "@/stores/FinancialMonitoringStoreWallet";
 import { useFinancialMonitoringStoreUser } from "@/stores/FinancialMonitoringStoreUser";
-import FinancialMonitoringRangeFilterModal from "./FinancialMonitoringRangeFilterModal.vue";
-import FinancialMonitoringCategoryList from "./FinancialMonitoringCategoryList.vue";
+import RangeFilterModal from "./RangeFilterModal.vue";
+import CategoryListModal from "./CategoryListModal.vue";
 import { formatDate, formatDateForTab } from "@/utils.js";
 import FinancialMonitoringCard from "./FinancialMonitoringCard.vue";
 import { OperationType, SortType, FilterType, GroupType } from "@/stores/FinancialMonitoringStore";
 import { ElMessage } from 'element-plus';
 import { format, parseISO } from 'date-fns';
+import { CloseBold, Edit } from '@element-plus/icons-vue'
 
 export default {
-  name: "financial-monitoring-expenses",
+  name: "financial-monitoring-transactions",
   props: {
     typeOperation: {
       type: Number,
@@ -155,8 +167,8 @@ export default {
     },
   },
   components: {
-    FinancialMonitoringRangeFilterModal,
-    FinancialMonitoringCategoryList,
+    RangeFilterModal,
+    CategoryListModal,
     FinancialMonitoringCard,
   },
   setup() {
@@ -167,7 +179,7 @@ export default {
     return { financialMonitoringStore, financialMonitoringStoreWallet, financialMonitoringStoreUser };
   },
   watch: {
-    watchedNotesArray: {
+    watchedTransactionsArray: {
       handler() {
         this.initializeTabs();
         this.removeEmptyTabs();
@@ -176,7 +188,7 @@ export default {
     },
     currentWalletId(newValue) {
       this.$router.replace({ query: { ...this.$route.query, walletId: newValue } });
-      this.financialMonitoringStore.fetchNotes(this.typeOperation, newValue);
+      this.financialMonitoringStore.fetchTransactions(this.typeOperation, newValue);
       this.initializeTabs();
       this.removeEmptyTabs();
     },
@@ -198,7 +210,7 @@ export default {
       ElMessage.error('Не удалось загрузить кошельки');
     };
 
-    this.financialMonitoringStore.fetchNotes(this.typeOperation, this.financialMonitoringStore.filtersTransactions.currentWalletId)
+    this.financialMonitoringStore.fetchTransactions(this.typeOperation, this.financialMonitoringStore.filtersTransactions.currentWalletId)
       .then(() => {
         this.$nextTick(() => {
           this.removeEmptyTabs();
@@ -252,12 +264,15 @@ export default {
     selectedDate: function () {
       return this.financialMonitoringStore.filtersTransactions.selectedDate;
     },
-    watchedNotesArray: function () {
+    watchedTransactionsArray: function () {
       return this.typeOperation === OperationType.Expenses? this.financialMonitoringStore.expenses : this.financialMonitoringStore.incomes;
     },
     currentWalletId: function () {
       return this.financialMonitoringStore.filtersTransactions.currentWalletId;
     },
+    isResetSortFilterButton: function () {
+      return this.typeSortTransactions !== SortType.ByDateNew || this.typeFilterTransactions!== FilterType.NotSelected && (this.selectedFilterCategory || this.applyRangeFilter) || this.typeSortTransactions !== SortType.ByDateNew && this.typeFilterTransactions !== FilterType.NotSelected;
+    }
   },
   data() {
     return {
@@ -304,7 +319,7 @@ export default {
           query: {} 
         });
       } else if (this.typeFilterTransactions == FilterType.ByCategories) {
-        this.isCategoryListDialogVisible = true;
+          this.isCategoryListDialogVisible = true;
       } else if (this.typeFilterTransactions == FilterType.ByRangeOfAmounts) {
           this.isFilterByRangeOfAmountsVisible = true;
           this.applyRangeFilter = false;
@@ -428,9 +443,9 @@ export default {
     initializeTabs: function () {
       const uniqueDates = new Set();
 
-      const notesArray = this.typeOperation === OperationType.Expenses ? 'expenses' : 'incomes';
+      const transactionsArray = this.typeOperation === OperationType.Expenses ? 'expenses' : 'incomes';
 
-      this.financialMonitoringStore[notesArray].forEach(item => {
+      this.financialMonitoringStore[transactionsArray].forEach(item => {
         const formattedDate = formatDateForTab(item.date);
         uniqueDates.add(formattedDate);
       });
@@ -471,12 +486,12 @@ export default {
       ];
     },
     async isFavoriteTransaction (id) {
-      let transaction = await this.financialMonitoringStore.fetchNote(id);
+      let transaction = await this.financialMonitoringStore.fetchTransaction(id);
       
       transaction.isFavorite = !transaction.isFavorite;
       transaction.createdAtUtc = transaction.createdAt;
 
-      let isSuccessUpdateIsFavorite = await this.financialMonitoringStore.editNote(transaction);
+      let isSuccessUpdateIsFavorite = await this.financialMonitoringStore.editTransaction(transaction);
 
       if (isSuccessUpdateIsFavorite) {
         if (transaction.isFavorite) {
@@ -484,7 +499,7 @@ export default {
         } else {
           ElMessage.success('Запись успешно удалена из помеченных');
         }
-        this.financialMonitoringStore.fetchNotes(this.typeOperation, this.financialMonitoringStore.filtersTransactions.currentWalletId);
+        this.financialMonitoringStore.fetchTransactions(this.typeOperation, this.financialMonitoringStore.filtersTransactions.currentWalletId);
       } else {
         ElMessage.error('Не удалось добавить запись в помеченные');
       }
@@ -497,18 +512,18 @@ export default {
         console.error('Ошибка при удалении:', error);
       }
     },
-    openEditNote: function (id) {
+    openTransactionForm: function (id) {
       const type = this.typeOperation === OperationType.Expenses ? 'expense' : 'income';
       this.$router.push({ 
-        name: 'add-note', 
+        name: 'transaction-form', 
         params: { type: type, action: 'edit', id: id }, 
         query: { currentMenuItem: this.typeOperation, walletId: this.financialMonitoringStore.filtersTransactions.currentWalletId } 
       });
     },
-    openInfoNote: function (id) {
+    openTransactionInfo: function (id) {
       const type = this.typeOperation === OperationType.Expenses ? 'expense' : 'income';
       this.$router.push({ 
-        name: 'info-note', 
+        name: 'transaction-info', 
         params: { type: type, id: id }, 
         query: { currentMenuItem: this.typeOperation } 
       });
@@ -523,8 +538,9 @@ export default {
       this.financialMonitoringStore.filtersTransactions.selectedFilterCategory = category.label;
       this.isCategoryListDialogVisible = false;
     },
-    handleClose: function () {
+    handleCloseFilterByRangeOfAmountsDialog: function () {
       this.financialMonitoringStore.filtersTransactions.typeFilterTransactions = FilterType.NotSelected;
+      this.isFilterByRangeOfAmountsVisible = false;
     },
     getWordByType: function (count) {
       const words = {
@@ -565,15 +581,26 @@ export default {
     },
     handleCloseCategoryListDialog: function () {
       this.$refs.categoryListDialog.filterCategory = '';
+
+      if (!this.selectedFilterCategory) {
+        this.financialMonitoringStore.filtersTransactions.typeFilterTransactions = FilterType.NotSelected;
+      }
+      this.isCategoryListDialogVisible = false;
     },
-    handleAddTransactionButtonClick() {
+    handleAddTransactionButtonClick: function() {
       const type = this.typeOperation === OperationType.Expenses ? 'expense' : 'income';
       this.$router.push({ 
-        name: 'add-note',
+        name: 'transaction-form',
         params: { type: type, action: 'new' },
         query: { currentMenuItem: this.typeOperation, walletId: this.financialMonitoringStore.filtersTransactions.currentWalletId } 
       });
     },
+    resetSortFilter: function() {
+      this.financialMonitoringStore.filtersTransactions.typeSortTransactions = SortType.ByDateNew;
+      this.financialMonitoringStore.filtersTransactions.typeFilterTransactions = FilterType.NotSelected;
+      this.financialMonitoringStore.filtersTransactions.selectedFilterCategory = '';
+      this.applyRangeFilter = false;
+    }
   },
 };
 </script>
@@ -607,5 +634,14 @@ export default {
   align-items: center;
   justify-content: center;
   flex-direction: column;
+}
+
+.button-reset-sort-filter {
+  position: absolute;
+  right: 40px;
+
+  .el-button {
+    padding: 0px 8px 0px 8px;
+  }
 }
 </style>

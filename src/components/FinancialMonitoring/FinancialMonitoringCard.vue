@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="expenses__card">
+    <div class="transaction__card">
       <el-card style="margin-bottom: 15px;">
           <el-row :gutter="20">
             <el-col :span="12">
@@ -22,7 +22,7 @@
           
           <el-divider style="margin: 10px 0 5px; opacity: 0.3;" />
 
-          <div class="visible-actions-note" @click="handleOpenInfoNote(item.id)" v-for="(item, index) in group.items" :key="item.id">
+          <div class="visible-actions-transaction" @click="handleOpenTransactionInfo(item.id)" v-for="(item, index) in group.items" :key="item.id">
             <el-row :gutter="20" style="margin-top: 15px;">
               <el-col :span="12">
                 <div>
@@ -128,8 +128,8 @@ export default {
     };
   },
   methods: {
-    handleOpenInfoNote: function(id) {
-      this.$emit('openInfoNote', id);
+    handleOpenTransactionInfo: function(id) {
+      this.$emit('openTransactionInfo', id);
     },
     handleFavorite(id) {
       this.$emit('favorite', id);
@@ -168,15 +168,15 @@ export default {
 </script>
 
 <style lang="scss">
-.visible-actions-note .el-button {
+.visible-actions-transaction .el-button {
   visibility: hidden;
 }
 
-.visible-actions-note:hover .el-button {
+.visible-actions-transaction:hover .el-button {
   visibility: visible;
 }
 
-.expenses__card .el-card {
+.transaction__card .el-card {
   width: 415px;
   max-width: 415px;
   max-height: 135px auto;

@@ -8,7 +8,7 @@
             <span style="display: flex; gap: 1px;">
               <el-button @click="isFavoriteTransaction(transaction.id)" size="small"><el-icon><CollectionTag /></el-icon></el-button>
 
-              <el-button @click="this.$router.push({ name: 'add-note', params: { type: type, action: 'edit', id: id }, query: { currentMenuItem: typeOperation } })" size="small">
+              <el-button @click="this.$router.push({ name: 'transaction-form', params: { type: type, action: 'edit', id: id }, query: { currentMenuItem: typeOperation } })" size="small">
                 <el-icon><Edit /></el-icon>
               </el-button>
 
@@ -57,7 +57,7 @@ dayjs.extend(utc);
 dayjs.extend(timezone);
 
 export default {
-  name: "financial-monitoring-info-note",
+  name: "transaction-info",
   props: {
     id: {
       type: String,
@@ -101,7 +101,7 @@ export default {
   methods: {
     async handleFetchTransaction() {
       try {
-        this.transaction = await this.financialMonitoringStore.fetchNote(this.id);
+        this.transaction = await this.financialMonitoringStore.fetchTransaction(this.id);
         if (!this.transaction) {
           this.$router.back();
         }
@@ -138,10 +138,10 @@ export default {
       })
     },
     async isFavoriteTransaction (id) {
-      let transaction = await this.financialMonitoringStore.fetchNote(id);
+      let transaction = await this.financialMonitoringStore.fetchTransaction(id);
       
       transaction.isFavorite = !transaction.isFavorite
-      let isSuccessUpdateIsFavorite = await this.financialMonitoringStore.editNote(transaction);
+      let isSuccessUpdateIsFavorite = await this.financialMonitoringStore.editTransaction(transaction);
 
       if (isSuccessUpdateIsFavorite) {
         if (transaction.isFavorite) {
@@ -149,7 +149,7 @@ export default {
         } else {
           ElMessage.success('Запись успешно удалена из помеченных');
         }
-        this.financialMonitoringStore.fetchNotes(this.typeOperation, this.financialMonitoringStore.filtersTransactions.currentWalletId);
+        this.financialMonitoringStore.fetchTransactions(this.typeOperation, this.financialMonitoringStore.filtersTransactions.currentWalletId);
       } else {
         ElMessage.error('Не удалось добавить запись в помеченные');
       }
@@ -157,7 +157,7 @@ export default {
     handleAddTransactionButtonClick: function () {
       const type = this.typeOperation === OperationType.Expenses ? 'expense' : 'income';
       this.$router.push({ 
-        name: 'add-note',
+        name: 'transaction-form',
         params: { type: type, action: 'new' },
         query: { currentMenuItem: this.typeOperation, walletId: this.financialMonitoringStore.filtersTransactions.currentWalletId } 
       });

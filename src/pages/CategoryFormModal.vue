@@ -1,15 +1,16 @@
 <template>
   <div>
-    <div class="category-edit-container">
+    <div class="category-form-container">
       <el-dialog
-        v-model="isCategoryEditDialogVisible"
+        v-model="isCategoryFormDialogVisible"
         :title="dialogTitle"
         width="500"
         center
         align-center
         @close="backToCategories"
+        close-on-press-escape
       >
-        <div class="category-edit-modal-content">
+        <div class="category-form-modal-content">
           <div class="form-group">
             <label>Название категории</label>
             <el-input style="width: 250px" v-model="name" placeholder="Введите название категории" clearable />
@@ -36,23 +37,23 @@
             </el-input>
           </div>
 
-          <div v-if="isAddCategory" class="category-edit-button-container">
+          <div v-if="isAddCategory" class="category-form-button-container">
             <el-button @click="backToCategories()">Назад</el-button>
             <el-button type="primary" @click="handleAddCategory()" :disabled="checkFieldsCategory()">Добавить</el-button>
           </div>
 
-          <div v-if="isEditCategory" class="category-edit-button-container">
+          <div v-if="isEditCategory" class="category-form-button-container">
               <el-button @click="backToCategories()">Назад</el-button>
               <el-button type="primary" @click="handleEditCategory()" :disabled="checkFieldsCategory()">Сохранить</el-button>
           </div>
 
         </div>
 
-        <el-dialog v-model="isOpenModalCategoryList" title="Выберите категорию" width="500" center align-center>
-          <financial-monitoring-category-list
+        <el-dialog v-model="isOpenModalCategoryList" title="Выберите категорию" width="500" center align-center close-on-press-escape>
+          <category-list-modal
           :typeOperation="modalTypeOperation"
           @category-selected="onCategorySelected">
-          </financial-monitoring-category-list>
+          </category-list-modal>
         </el-dialog>
 
       </el-dialog>
@@ -64,17 +65,17 @@
 import { OperationType, useFinancialMonitoringStore } from '@/stores/FinancialMonitoringStore';
 import { useAuthenticationStore } from '@/stores/AuthenticationStore';
 import { ElMessage } from 'element-plus';
-import FinancialMonitoringCategoryList from '@/components/FinancialMonitoring/FinancialMonitoringCategoryList.vue';
+import CategoryListModal from '@/components/FinancialMonitoring/CategoryListModal.vue';
 
 export default {
-  name: "category-edit-settings",
+  name: "category-form-modal",
   setup() {
     const financialMonitoringStore = useFinancialMonitoringStore();
     const authenticationStore = useAuthenticationStore();
     return { financialMonitoringStore, authenticationStore };
   },
   components: {
-    FinancialMonitoringCategoryList,
+    CategoryListModal,
   },
   props: {
     isAddCategory: {
@@ -116,7 +117,7 @@ export default {
       typeOperation: OperationType.Expenses,
       isChildren: false,
       OperationType,
-      isCategoryEditDialogVisible: true,
+      isCategoryFormDialogVisible: true,
       parentId: null,
       isOpenModalCategoryList: false,
       modalTypeOperation: null,
@@ -201,13 +202,13 @@ export default {
 </script>
 
 <style land="scss">
-.category-edit-container {
+.category-form-container {
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
-.category-edit-modal-content {
+.category-form-modal-content {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -228,7 +229,7 @@ export default {
   text-align: left;
 }
 
-.category-edit-button-container {
+.category-form-button-container {
   display: flex;
   justify-content: center;
   width: 100%;

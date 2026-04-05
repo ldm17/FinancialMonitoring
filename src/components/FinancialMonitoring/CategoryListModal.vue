@@ -33,7 +33,7 @@ import { OperationType, useFinancialMonitoringStore } from "@/stores/FinancialMo
 import { ElMessage } from "element-plus";
 
 export default {
-  name: "financial-monitoring-category-list",
+  name: "category-list-modal",
   props: {
     typeOperation: {
       type: Number,

@@ -78,10 +78,9 @@
 import * as Icons from '@element-plus/icons-vue';
 import { useFinancialMonitoringStore } from '@/stores/FinancialMonitoringStore';
 import FinancialMonitoringTransactions from './FinancialMonitoringTransactions.vue';
-import FinancialMonitoringAddNote from './FinancialMonitoringAddNote.vue';
-import FinancialMonitoringRangeFilterModal from './FinancialMonitoringRangeFilterModal.vue';
-import FinancialMonitoringInfoNote from './FinancialMonitoringInfoNote.vue';
-import CategoryEdit from '@/pages/CategoryEdit.vue';
+import TransactionForm from './TransactionForm.vue';
+import RangeFilterModal from './RangeFilterModal.vue';
+import TransactionInfo from './TransactionInfo.vue';
 import { useAuthenticationStore } from '@/stores/AuthenticationStore';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import ThemeSwitcher from './ThemeSwitcher.vue';
@@ -90,10 +89,9 @@ export default {
   name: "financial-monitoring",
   components: {
     FinancialMonitoringTransactions,
-    FinancialMonitoringAddNote,
-    FinancialMonitoringRangeFilterModal,
-    FinancialMonitoringInfoNote,
-    CategoryEdit,
+    TransactionForm,
+    RangeFilterModal,
+    TransactionInfo,
     ThemeSwitcher,
   },
   setup() {

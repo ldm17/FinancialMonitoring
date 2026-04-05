@@ -196,7 +196,7 @@ export default {
     },
     handleAddTransactionButtonClick() {
       this.$router.push({ 
-        name: 'add-note',
+        name: 'transaction-form',
         params: { type: 'expense', action: 'new' },
         query: { currentMenuItem: OperationType.Expenses, walletId: this.financialMonitoringStore.filtersTransactions.currentWalletId } 
       });

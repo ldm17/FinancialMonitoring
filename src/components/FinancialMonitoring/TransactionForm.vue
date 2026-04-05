@@ -40,12 +40,12 @@
     </div>
     <div class="error-message" v-if="isSubmitAttempted && errorMessage">Выбранная категория не найдена. Пожалуйста, выберите другую категорию</div>
 
-    <el-dialog v-model="isCategoryListDialogVisible" title="Выберите категорию" width="500" center align-center>
+    <el-dialog v-model="isCategoryListDialogVisible" title="Выберите категорию" width="500" center align-center close-on-press-escape>
       <span>
-        <financial-monitoring-category-list
+        <category-list-modal
         :typeOperation="typeOperation"
         @category-selected="onCategorySelected">
-        </financial-monitoring-category-list>
+        </category-list-modal>
       </span>
     </el-dialog>
     
@@ -77,19 +77,19 @@
     <div v-if="action === 'new'">
       <p>
         <el-button @click="this.$router.back()">Назад</el-button>
-        <el-button type="primary" @click="addExpense(amount, selectedCategory, datePicker)" :disabled="checkFieldsAddExpense()">Добавить</el-button>
+        <el-button type="primary" @click="addTransaction(amount, selectedCategory, datePicker)" :disabled="checkFieldsAddTransaction()">Добавить</el-button>
       </p>
     </div>
 
       <div v-if="action === 'edit'">
       <p>
         <el-button @click="this.$router.back()">Назад</el-button>
-        <el-button type="primary" @click="handleEditTransaction()" :disabled="checkFieldsAddExpense()">Сохранить</el-button>
+        <el-button type="primary" @click="handleEditTransaction()" :disabled="checkFieldsAddTransaction()">Сохранить</el-button>
       </p>
     </div>
 
     <div>
-      <el-dialog class="select-timeZone-modal" v-model="isDialogWarningEditDatePicker" title="Подтвердите действие" width="600" center align-center draggable>
+      <el-dialog class="select-timeZone-modal" v-model="isDialogWarningEditDatePicker" title="Подтвердите действие" width="600" center align-center draggable close-on-press-escape>
         <p style="text-align: center;">Дата транзакции была изменена. Как учесть часовой пояс?</p>
         <div class="select-timeZone-button-container">
           <el-button type="primary" @click="saveOriginalTimeZone()">Сохранить исходный (UTC{{ getTzOffsets.transactionOffset }})</el-button>
@@ -105,7 +105,7 @@ import { OperationType, useFinancialMonitoringStore } from '@/stores/FinancialMo
 import { useFinancialMonitoringStoreWallet } from "@/stores/FinancialMonitoringStoreWallet";
 import { useFinancialMonitoringStoreUser } from "@/stores/FinancialMonitoringStoreUser";
 import { ElMessage, ElMessageBox } from 'element-plus';
-import FinancialMonitoringCategoryList from './FinancialMonitoringCategoryList.vue';
+import CategoryListModal from './CategoryListModal.vue';
 import { formatDate, getDetectedTimeZone, DATE_FORMATS } from '@/utils.js'
 import { FormatDateType } from '@/stores/FinancialMonitoringStoreUser';
 
@@ -117,7 +117,7 @@ dayjs.extend(utc)
 dayjs.extend(timezone)
 
 export default {
-  name: "financial-monitoring-add-note",
+  name: "transaction-form",
   props: {
     type: {
       type: String,
@@ -133,7 +133,7 @@ export default {
     }
   },
   components: {
-    FinancialMonitoringCategoryList,
+    CategoryListModal,
   },
   setup() {
     const financialMonitoringStore = useFinancialMonitoringStore();
@@ -160,9 +160,9 @@ export default {
 
     await this.financialMonitoringStoreUser.fetchTimeZone();
 
-    const expenseId = Number(this.id);
-    if (expenseId) {
-      this.fetchExpense(expenseId);
+    const transactionId = Number(this.id);
+    if (transactionId) {
+      this.fetchTransaction(transactionId);
     } else {
       this.setCurrentDate();
     }
@@ -245,7 +245,7 @@ export default {
     };
   },
   methods: {
-    async addExpense(amount, selectedCategory, datePicker) {
+    async addTransaction(amount, selectedCategory, datePicker) {
       this.isSubmitAttempted = true;
 
       const allCategories = this.loadAllCategoryList();
@@ -271,7 +271,7 @@ export default {
         walletId: this.financialMonitoringStore.filtersTransactions.currentWalletId,
         timeZone: targetZone,
       };
-      const isSuccsess = await this.financialMonitoringStore.addNote(request, this.typeOperation);
+      const isSuccsess = await this.financialMonitoringStore.addTransaction(request, this.typeOperation);
 
       if (isSuccsess) {
         this.financialMonitoringStore.filtersTransactions.selectedDate = datePicker;
@@ -283,17 +283,17 @@ export default {
         ElMessage.error('Ошибка добавлении транзакции');
       }
     },
-    async fetchExpense(id) {
-      const expense = await this.financialMonitoringStore.fetchNote(id);
+    async fetchTransaction(id) {
+      const transaction = await this.financialMonitoringStore.fetchTransaction(id);
 
-      if (expense !== null) {
-        this.amount = expense.amount;
-        this.selectedCategory = this.financialMonitoringStore.categories.get(expense.categoryId)?.name;
-        this.datePicker = dayjs(expense.createdAt).tz(expense.timeZone).format('YYYY-MM-DD HH:mm');
-        this.description = expense.description;
-        this.isIgnoredInCalculation = expense.isIgnoredInCalculation;
-        this.isFavorite = expense.isFavorite;
-        this.timeZone = expense.timeZone;
+      if (transaction !== null) {
+        this.amount = transaction.amount;
+        this.selectedCategory = this.financialMonitoringStore.categories.get(transaction.categoryId)?.name;
+        this.datePicker = dayjs(transaction.createdAt).tz(transaction.timeZone).format('YYYY-MM-DD HH:mm');
+        this.description = transaction.description;
+        this.isIgnoredInCalculation = transaction.isIgnoredInCalculation;
+        this.isFavorite = transaction.isFavorite;
+        this.timeZone = transaction.timeZone;
       } else {
         ElMessage.error('Не удалось загрузить запись');
       }
@@ -319,7 +319,7 @@ export default {
 
       let datePickerWithOffset = dayjs(this.datePicker).tz(targetZone, true).format('YYYY-MM-DDTHH:mm:ss.SSSZ');
 
-      const updatedExpense = {
+      const updatedTransaction = {
         id: this.id,
         categoryId: isValidCategory.id,
         amount: parseFloat(this.amount),
@@ -332,7 +332,7 @@ export default {
         timeZone: targetZone,
       };
 
-      const isSuccsess = await this.financialMonitoringStore.editNote(updatedExpense);
+      const isSuccsess = await this.financialMonitoringStore.editTransaction(updatedTransaction);
 
       if (isSuccsess) {
         ElMessage.success('Запись успешно обновлена');
@@ -343,7 +343,7 @@ export default {
         ElMessage.error('Не удалось обновить запись');
       }
     },
-    checkFieldsAddExpense: function () {
+    checkFieldsAddTransaction: function () {
       return this.selectedCategory == 0 || this.amount == 0 || this.datePicker == 0 ? true : false;
     },
     addDescription: function () {

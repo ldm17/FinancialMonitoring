@@ -5,13 +5,13 @@ import { useAuthenticationStore } from './stores/AuthenticationStore';
 import Expenses from './pages/Expenses.vue';
 import Incomes from './pages/Incomes.vue';
 import WalletList from './pages/WalletList.vue';
-import WalletEdit from './pages/WalletEdit.vue';
+import WalletForm from './pages/WalletForm.vue';
 import CategoryList from './pages/CategoryList.vue';
 import Register from './pages/Register.vue';
 import Login from './pages/Login.vue';
 import FinancialMonitoring from './components/FinancialMonitoring/FinancialMonitoring.vue';
-import FinancialMonitoringAddNote from './components/FinancialMonitoring/FinancialMonitoringAddNote.vue';
-import FinancialMonitoringInfoNote from './components/FinancialMonitoring/FinancialMonitoringInfoNote.vue';
+import TransactionForm from './components/FinancialMonitoring/TransactionForm.vue';
+import TransactionInfo from './components/FinancialMonitoring/TransactionInfo.vue';
 import UserSettings from './pages/UserSettings.vue';
 
 const router = createRouter({
@@ -51,8 +51,8 @@ const router = createRouter({
         },
         {
           path: 'settings/wallets/:action/:id?',
-          name: 'wallet-edit-settings',
-          component: WalletEdit,
+          name: 'wallet-form-settings',
+          component: WalletForm,
           props: true,
         },
         {
@@ -61,15 +61,15 @@ const router = createRouter({
           component: CategoryList,
         },
         {
-          path: 'add-note/:type/:action/:id?',
-          name: 'add-note',
-          component: FinancialMonitoringAddNote,
+          path: 'transaction-form/:type/:action/:id?',
+          name: 'transaction-form',
+          component: TransactionForm,
           props: true,
         },
         {
-          path: 'note/:type/:id',
-          name: 'info-note',
-          component: FinancialMonitoringInfoNote,
+          path: 'transaction/:type/:id',
+          name: 'transaction-info',
+          component: TransactionInfo,
           props: true,
         },
         {
