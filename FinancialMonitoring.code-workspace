@@ -1,0 +1,30 @@
+{
+	"folders": [
+		{
+			"name": "FinancialMonitoring",
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.exclude": {
+			"**/.git": true,
+			"**/.gitattributes": true,
+			"**/.gitignore": true,
+			"**/.idea": true,
+			"**/.vscode": true,
+			"**/node_modules": true,
+			"**/dist": true
+		},
+		"files.watcherExclude": {
+			"**/.git/objects/**": true,
+			"**/.git/subtree-cache/**": true,
+			"**/node_modules/**": true,
+			"**/dist/**": true
+		},
+		"search.exclude": {
+			"**/node_modules": true,
+			"**/dist": true,
+			"**/.git": true
+		}
+	}
+}
