@@ -1,13 +1,13 @@
 using System.Security.Claims;
-using FinancialMonitoringMVC.Models;
-using FinancialMonitoringMVC.Models.DTOs;
+using FinancialMonitoring.Api.Models;
+using FinancialMonitoring.Api.Models.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NodaTime;
 using NodaTime.TimeZones;
 
-namespace FinancialMonitoringMVC.Controllers;
+namespace FinancialMonitoring.Api.Controllers;
 
 [Authorize]
 [ApiController]

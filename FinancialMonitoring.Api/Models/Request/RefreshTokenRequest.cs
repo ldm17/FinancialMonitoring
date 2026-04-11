@@ -1,4 +1,4 @@
-namespace FinancialMonitoringMVC.Models.Request;
+namespace FinancialMonitoring.Api.Models.Request;
 
 public class RefreshTokenRequest
 {

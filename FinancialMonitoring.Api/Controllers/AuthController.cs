@@ -4,11 +4,11 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using FinancialMonitoringMVC;
-using FinancialMonitoringMVC.Models.Authentication;
-using FinancialMonitoringMVC.Models.DataModels;
-using FinancialMonitoringMVC.Models.Request;
-using FinancialMonitoringMVC.Services;
+using FinancialMonitoring.Api;
+using FinancialMonitoring.Api.Models.Authentication;
+using FinancialMonitoring.Api.Models.DataModels;
+using FinancialMonitoring.Api.Models.Request;
+using FinancialMonitoring.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 

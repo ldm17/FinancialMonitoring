@@ -1,4 +1,4 @@
-namespace FinancialMonitoringMVC.Models.Authentication;
+namespace FinancialMonitoring.Api.Models.Authentication;
 
 public class RegisterModel
 {

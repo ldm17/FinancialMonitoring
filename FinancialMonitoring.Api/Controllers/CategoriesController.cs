@@ -1,13 +1,13 @@
 using System.Security.Claims;
-using FinancialMonitoringMVC.Models;
-using FinancialMonitoringMVC.Models.DataModels;
-using FinancialMonitoringMVC.Models.DTOs;
-using FinancialMonitoringMVC.Models.Response;
+using FinancialMonitoring.Api.Models;
+using FinancialMonitoring.Api.Models.DataModels;
+using FinancialMonitoring.Api.Models.DTOs;
+using FinancialMonitoring.Api.Models.Response;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace FinancialMonitoringMVC.Controllers;
+namespace FinancialMonitoring.Api.Controllers;
 
 [Authorize]
 [ApiController]

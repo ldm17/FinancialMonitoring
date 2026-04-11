@@ -1,8 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace FinancialMonitoringMVC.Migrations
+namespace FinancialMonitoring.Api.Migrations
 {
     /// <inheritdoc />
     public partial class DeleteFieldUserId : Migration

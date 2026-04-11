@@ -1,4 +1,4 @@
-namespace FinancialMonitoringMVC.Models.Response;
+namespace FinancialMonitoring.Api.Models.Response;
 
 public class CategoryResponse
 {

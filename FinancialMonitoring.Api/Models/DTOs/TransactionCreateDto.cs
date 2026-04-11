@@ -1,6 +1,6 @@
-using FinancialMonitoringMVC.Models.DataModels;
+using FinancialMonitoring.Api.Models.DataModels;
 
-namespace FinancialMonitoringMVC.Models.DTOs;
+namespace FinancialMonitoring.Api.Models.DTOs;
 
 public class TransactionCreateDto
 {

@@ -1,4 +1,4 @@
-namespace FinancialMonitoringMVC.Models.DTOs;
+namespace FinancialMonitoring.Api.Models.DTOs;
 
 public class TransactionUpdateDto
 {

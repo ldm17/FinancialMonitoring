@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
-namespace FinancialMonitoringMVC;
+namespace FinancialMonitoring.Api.Utils;
 
 public class CreatedAtConverter : ValueConverter<DateTimeOffset?, string?>
 {

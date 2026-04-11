@@ -1,4 +1,4 @@
-namespace FinancialMonitoringMVC.Models;
+namespace FinancialMonitoring.Api.Models;
 
 public class ErrorViewModel
 {

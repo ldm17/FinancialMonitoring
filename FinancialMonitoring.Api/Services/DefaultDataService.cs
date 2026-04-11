@@ -1,9 +1,9 @@
-using FinancialMonitoringMVC.Models;
-using FinancialMonitoringMVC.Models.DataModels;
-using FinancialMonitoringMVC.Models.DTOs;
+using FinancialMonitoring.Api.Models;
+using FinancialMonitoring.Api.Models.DataModels;
+using FinancialMonitoring.Api.Models.DTOs;
 using Microsoft.EntityFrameworkCore;
 
-namespace FinancialMonitoringMVC.Services;
+namespace FinancialMonitoring.Api.Services;
 
 public class DefaultDataService
 {

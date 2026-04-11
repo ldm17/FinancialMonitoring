@@ -1,9 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
-namespace FinancialMonitoringMVC.Migrations
+namespace FinancialMonitoring.Api.Migrations
 {
     /// <inheritdoc />
     public partial class AddUserSettingsModel : Migration

@@ -1,13 +1,14 @@
 using System.Globalization;
 using System.Security.Claims;
-using FinancialMonitoringMVC.Models;
-using FinancialMonitoringMVC.Models.DataModels;
+using FinancialMonitoring.Api.Models;
+using FinancialMonitoring.Api.Models.DataModels;
+using FinancialMonitoring.Api.Utils;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
-namespace FinancialMonitoringMVC;
+namespace FinancialMonitoring.Api;
 
 public class AppDbContext : IdentityDbContext<IdentityUser>
 {

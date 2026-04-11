@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 
-namespace FinancialMonitoringMVC.Models.DataModels;
+namespace FinancialMonitoring.Api.Models.DataModels;
 
 public class RefreshToken
 {

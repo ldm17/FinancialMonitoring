@@ -1,7 +1,7 @@
-// using FinancialMonitoringMVC.Models;
+// using FinancialMonitoring.Api.Models;
 // using Microsoft.EntityFrameworkCore;
 // using System.Collections.Generic;
-// namespace FinancialMonitoringMVC;
+// namespace FinancialMonitoring.Api;
 //
 // public static class SeedData
 // {

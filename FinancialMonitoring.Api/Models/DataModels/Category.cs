@@ -1,6 +1,6 @@
-using FinancialMonitoringMVC.Models.DataModels;
+using FinancialMonitoring.Api.Models.DataModels;
 
-namespace FinancialMonitoringMVC.Models.DataModels;
+namespace FinancialMonitoring.Api.Models.DataModels;
 
 public class Category
 {

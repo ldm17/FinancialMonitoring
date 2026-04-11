@@ -1,4 +1,4 @@
-namespace FinancialMonitoringMVC.Models.DataModels;
+namespace FinancialMonitoring.Api.Models.DataModels;
 
 public class Transaction
 {

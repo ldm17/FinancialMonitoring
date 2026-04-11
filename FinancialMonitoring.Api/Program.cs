@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.Json.Serialization;
-using FinancialMonitoringMVC;
-using FinancialMonitoringMVC.Services;
+using FinancialMonitoring.Api;
+using FinancialMonitoring.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
