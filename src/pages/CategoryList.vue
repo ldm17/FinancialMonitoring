@@ -24,6 +24,8 @@
           :props="defaultProps"
           :expand-on-click-node="false"
           :filter-node-method="filterNode"
+          :allow-drop="allowDrop"
+          @node-drop="handleDrop"
         >
       
         <template #default="{ node, data }">
@@ -159,7 +161,9 @@ export default {
       }
     },
     getCategoryList: function () {
-      return Array.from(this.financialMonitoringStore.categories.values()).filter((category) => !category.parentId);
+      return Array.from(this.financialMonitoringStore.categories.values())
+        .filter((category) => !category.parentId)
+        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
     },
     openEditCategory: function (id) {
       this.categoryIdToEdit = id;
@@ -201,6 +205,38 @@ export default {
     },
     handleAddCategoryButtonClick() {
       this.isCategoryAddModalVisible = true;
+    },
+    allowDrop(draggingNode, dropNode) {
+      if (draggingNode.data.id === dropNode.data.id) return false;
+      if (this.isDescendant(dropNode.data.id, draggingNode.data.id)) return false;
+      return true;
+    },
+    isDescendant(nodeId, targetId) {
+      const node = this.financialMonitoringStore.categories.get(nodeId);
+      if (!node || !node.children) return false;
+      for (const child of node.children) {
+        if (child.id === targetId) return true;
+        if (this.isDescendant(child.id, targetId)) return true;
+      }
+      return false;
+    },
+    async handleDrop(draggingNode, dropNode, position) {
+      const dropNodeId = dropNode.data.id;
+      const newParentId = position === 'inner' ? dropNode.data.id : dropNode.parent?.data?.id ?? null;
+
+      const success = await this.financialMonitoringStore.updateCategory(
+        draggingNode.data.id,
+        newParentId,
+        position,
+        dropNodeId
+      );
+
+      if (success) {
+        await this.handleFetchCategories(this.typeOperation);
+        ElMessage.success('Категория успешно перемещена');
+      } else {
+        ElMessage.error('Не удалось переместить категорию');
+      }
     },
   }
 };

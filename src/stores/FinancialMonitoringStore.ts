@@ -6,6 +6,7 @@ import timezone from 'dayjs/plugin/timezone';
 
 // eslint-disable-next-line import/extensions, import/no-unresolved
 import ApiClient from '@/api/ApiClient';
+import { useAuthenticationStore } from './AuthenticationStore';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -56,6 +57,7 @@ type Category = {
   name: string;
   operationType: number;
   parentId?: number;
+  sortOrder?: number;
   children?: Category[];
 };
 
@@ -191,7 +193,25 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
         }
       });
 
-      return categoryById;
+      categoryById.forEach((category) => {
+        if (category.children && category.children.length > 0) {
+          category.children.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+        }
+      });
+
+      const sortedRootCategories = Array.from(categoryById.values())
+        .filter(c => c.parentId == null)
+        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+      const resultMap = new Map<number, Category>();
+      sortedRootCategories.forEach(c => resultMap.set(c.id, c));
+      categoryById.forEach((c, id) => {
+        if (c.parentId != null) {
+          resultMap.set(id, c);
+        }
+      });
+
+      return resultMap;
     },
     async fetchCategories(typeOperation: number) {
       try {
@@ -199,7 +219,12 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
 
         const response = await ApiClient.get<Category[]>(url);
 
-        const filteredCategories = response.data.filter((category) => category.operationType === typeOperation);
+        const filteredCategories = response.data
+          .filter((category) => category.operationType === typeOperation)
+          .map((category) => ({
+            ...category,
+            sortOrder: (category as any).SortOrder ?? (category as any).sortOrder ?? 0,
+          }));
 
         this.categories = this.buildCategoryTree(filteredCategories);
 
@@ -267,6 +292,27 @@ export const useFinancialMonitoringStore = defineStore('financialMonitoringStore
     },
     setSelectedOperationTypeCategories(type: number) {
       this.selectedOperationTypeCategories = type;
+    },
+    async updateCategory(categoryId: number, parentId: number | null, position: string, dropNodeId?: number) {
+      try {
+        const authenticationStore = useAuthenticationStore();
+        const userFromToken = authenticationStore.getUserFromToken();
+        const category = this.categories.get(categoryId);
+
+        await ApiClient.put(`/categories/${categoryId}`, {
+          UserId: userFromToken?.userId || '',
+          Name: category?.name || '',
+          ParentId: parentId,
+          SortOrder: dropNodeId ?? 0,
+          OperationType: category?.operationType ?? 0,
+          Position: position,
+        });
+
+        return true;
+      } catch (error) {
+        console.error('Ошибка при обновлении категории:', error);
+        return false;
+      }
     },
     setHeaderButtonHandler(fn: any) {
       this.headerButtonHandler = fn;

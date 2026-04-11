@@ -119,6 +119,7 @@ export default {
       OperationType,
       isCategoryFormDialogVisible: true,
       parentId: null,
+      currentSortOrder: 0,
       isOpenModalCategoryList: false,
       modalTypeOperation: null,
       parentCategoryName: '',
@@ -160,6 +161,8 @@ export default {
         userId: this.authenticationStore.user.userId,
         name: this.name,
         parentId: this.parentId,
+        sortOrder: this.currentSortOrder,
+        operationType: this.typeOperation,
       };
 
       const isSuccsess = await this.financialMonitoringStore.editCategory(updatedCategory);
@@ -178,6 +181,7 @@ export default {
       if (category !== null) {
         this.name = category.name;
         this.isChildren = category.parentId !== null;
+        this.currentSortOrder = category.sortOrder;
 
         if (this.isChildren && category.parentId) {
           const parentCategory = await this.financialMonitoringStore.fetchCategory(category.parentId);
