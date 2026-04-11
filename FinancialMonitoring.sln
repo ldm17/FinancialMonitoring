@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FinancialMonitoringMVC", "FinancialMonitoringMVC\FinancialMonitoringMVC.csproj", "{A3D3E6AA-F4FC-4C46-A217-A99F668F85A4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FinancialMonitoring.Api", "FinancialMonitoring.Api\FinancialMonitoring.Api.csproj", "{A3D3E6AA-F4FC-4C46-A217-A99F668F85A4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
