@@ -337,7 +337,8 @@ export default {
       if (isSuccsess) {
         ElMessage.success('Запись успешно обновлена');
         this.isDialogWarningEditDatePicker = false;
-        
+        this.financialMonitoringStore.filtersTransactions.selectedDate = this.datePicker;
+
         this.redirectToTransactionTab();
       } else {
         ElMessage.error('Не удалось обновить запись');

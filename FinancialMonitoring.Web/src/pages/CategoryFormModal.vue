@@ -52,6 +52,7 @@
         <el-dialog v-model="isOpenModalCategoryList" title="Выберите категорию" width="500" center align-center close-on-press-escape>
           <category-list-modal
           :typeOperation="modalTypeOperation"
+          :excludeId="isEditCategory ? categoryIdToEdit : null"
           @category-selected="onCategorySelected">
           </category-list-modal>
         </el-dialog>

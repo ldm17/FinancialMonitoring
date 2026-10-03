@@ -86,7 +86,10 @@ public class CategoriesController : ControllerBase
         else
         {
             existingCategory.ParentId = updatedCategory.ParentId;
-            existingCategory.SortOrder = updatedCategory.SortOrder;
+            var maxSortOrder = await _context.Categories
+                .Where(c => c.ParentId == updatedCategory.ParentId && c.OperationType == updatedCategory.OperationType && c.Id != existingCategory.Id)
+                .MaxAsync(c => (int?)c.SortOrder) ?? -1;
+            existingCategory.SortOrder = maxSortOrder + 1;
         }
 
         await _context.SaveChangesAsync();
@@ -122,7 +125,10 @@ public class CategoriesController : ControllerBase
                 break;
             default:
                 category.ParentId = dto.ParentId;
-                category.SortOrder = dto.SortOrder;
+                var maxSortOrder = await _context.Categories
+                    .Where(c => c.ParentId == dto.ParentId && c.OperationType == dto.OperationType && c.Id != category.Id)
+                    .MaxAsync(c => (int?)c.SortOrder) ?? -1;
+                category.SortOrder = maxSortOrder + 1;
                 break;
         }
     }

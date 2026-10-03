@@ -14,7 +14,7 @@
 
     <div>
       <el-scrollbar>
-        <el-tree
+<el-tree
           ref="categoryListDialog"
           style="width: 400px;"
           :data="getCategoryList()"
@@ -25,11 +25,13 @@
           :expand-on-click-node="false"
           :filter-node-method="filterNode"
           :allow-drop="allowDrop"
+          @node-drag-start="handleDragStart"
+          @node-drag-end="handleDragEnd"
           @node-drop="handleDrop"
         >
-      
+
         <template #default="{ node, data }">
-          <div class="custom-tree-node visible-actions-category">
+          <div class="custom-tree-node visible-actions-category" :class="{ 'is-dragging-node': isDraggingOrDescendant(data.id) }">
             <span>{{ node.label }}</span>
             <div>
               <el-button style="margin-left: 4px" type="primary" link @click.stop="openEditCategory(data.id)"><el-icon><EditPen /></el-icon></el-button>
@@ -148,6 +150,7 @@ export default {
       isCategoryFormModal: false,
       categoryIdToEdit: null,
       isCategoryAddModalVisible: false,
+      draggingNodeId: null,
     }
   },
   methods: {
@@ -206,9 +209,20 @@ export default {
     handleAddCategoryButtonClick() {
       this.isCategoryAddModalVisible = true;
     },
+    handleDragStart(node) {
+      this.draggingNodeId = node.data.id;
+    },
+    handleDragEnd() {
+      this.draggingNodeId = null;
+    },
+    isDraggingOrDescendant(dataId) {
+      if (!this.draggingNodeId) return false;
+      return dataId === this.draggingNodeId || this.isDescendant(this.draggingNodeId, dataId);
+    },
     allowDrop(draggingNode, dropNode) {
       if (draggingNode.data.id === dropNode.data.id) return false;
       if (this.isDescendant(dropNode.data.id, draggingNode.data.id)) return false;
+      if (this.isDescendant(draggingNode.data.id, dropNode.data.id)) return false;
       return true;
     },
     isDescendant(nodeId, targetId) {
@@ -283,5 +297,9 @@ export default {
   justify-content: center;
   align-items: center;
   flex-direction: column;
+}
+
+.is-dragging-node {
+  color: #909399;
 }
 </style>
