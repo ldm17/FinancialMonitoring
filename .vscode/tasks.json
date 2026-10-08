@@ -1,0 +1,57 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "frontend: serve",
+      "type": "npm",
+      "script": "serve",
+      "path": "FinancialMonitoring.Web",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "fullstack"
+      },
+      "detail": "Vite dev-server (http://localhost:5173)"
+    },
+    {
+      "label": "backend: run",
+      "type": "shell",
+      "command": "dotnet run --project \"${workspaceFolder}/FinancialMonitoring.Api/FinancialMonitoring.Api.csproj\" --launch-profile FinancialMonitoringMVC",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "fullstack"
+      },
+      "detail": "ASP.NET API (http://localhost:5124)"
+    },
+    {
+      "label": "backend: build",
+      "type": "shell",
+      "command": "dotnet build \"${workspaceFolder}/FinancialMonitoring.Api/FinancialMonitoring.Api.csproj\"",
+      "problemMatcher": "$msCompile",
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      },
+      "group": "build"
+    },
+    {
+      "label": "fullstack: run",
+      "dependsOn": ["frontend: serve", "backend: run"],
+      "dependsOrder": "parallel",
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "detail": "Запуск фронта + бэка параллельно (Terminal > Run Task)"
+    }
+  ]
+}
