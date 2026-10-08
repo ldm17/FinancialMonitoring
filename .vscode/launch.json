@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "backend: .NET Launch",
+      "type": "dotnet",
+      "request": "launch",
+      "projectPath": "${workspaceFolder}/FinancialMonitoring.Api/FinancialMonitoring.Api.csproj",
+      "launchProfileId": "FinancialMonitoringMVC",
+      "cwd": "${workspaceFolder}/FinancialMonitoring.Api"
+    },
+    {
+      "name": "frontend: Chrome",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/FinancialMonitoring.Web/src",
+      "preLaunchTask": "frontend: serve"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "fullstack: debug",
+      "configurations": ["backend: .NET Launch", "frontend: Chrome"],
+      "stopAll": true,
+      "preLaunchTask": "backend: build"
+    }
+  ]
+}

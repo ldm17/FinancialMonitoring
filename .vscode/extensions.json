@@ -1,6 +1,8 @@
 {
   "recommendations": [
     "Vue.volar",
-    "dbaeumer.vscode-eslint"
+    "dbaeumer.vscode-eslint",
+    "ms-dotnettools.csdevkit",
+    "ms-vscode.js-debug"
   ]
 }
